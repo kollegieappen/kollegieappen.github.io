@@ -7,7 +7,7 @@ import { Tip } from './Help'
 
 type Person = { user_id: string; name: string; hall: string }
 type Friendship = { id: string; from_dorm: string; to_dorm: string; status: 'pending' | 'accepted' }
-type DormRow = { id: string; name: string }
+type DormRow = { id: string; name: string; address: string | null; hall_count?: number; resident_count?: number }
 
 /** Bestyrelse og venskabskollegier (vises under Gangen → Beboere). */
 export default function DormSection() {
@@ -20,7 +20,9 @@ export default function DormSection() {
   const [friends, setFriends] = useState<Friendship[]>([])
   const [dorms, setDorms] = useState<DormRow[]>([])
   const [pickUser, setPickUser] = useState('')
-  const [pickDorm, setPickDorm] = useState('')
+  const [finding, setFinding] = useState(false)
+  const [search, setSearch] = useState('')
+  const [editAddr, setEditAddr] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
@@ -84,16 +86,34 @@ export default function DormSection() {
         </div>
       )}
 
+      <div className="section-title">{t('dorm.address')}</div>
+      {editAddr === null ? (
+        <div className="card row">
+          <span className="grow">📍 {dorms.find((d) => d.id === dormId)?.address || <span className="muted">{t('dorm.noAddress')}</span>}</span>
+          {canBoard && (
+            <button className="link small" onClick={() => setEditAddr(dorms.find((d) => d.id === dormId)?.address ?? '')}>{t('cal.edit')}</button>
+          )}
+        </div>
+      ) : (
+        <form className="row" onSubmit={(e) => { e.preventDefault(); run(() => supabase.rpc('set_dorm_address', { p_dorm: dormId, p_address: editAddr })); setEditAddr(null) }}>
+          <input className="grow" value={editAddr} onChange={(e) => setEditAddr(e.target.value)} maxLength={160} placeholder={t('dorm.addressPh')} autoFocus />
+          <button type="button" className="ghost" onClick={() => setEditAddr(null)}>{t('common.cancel')}</button>
+          <button type="submit">{t('common.save')}</button>
+        </form>
+      )}
+
       <div className="section-title">{t('dorm.friends')} <Tip k="friends" /></div>
       <div className="list">
         {friends.length === 0 && <div className="item muted small">{t('dorm.friendsEmpty')}</div>}
         {friends.map((f) => {
           const incoming = f.status === 'pending' && f.to_dorm === dormId
+          const d = dorms.find((x) => x.id === other(f))
           return (
             <div className="item" key={f.id} style={{ flexWrap: 'wrap' }}>
               <div className="grow">
-                <div>{dormName(other(f))}</div>
-                {f.status === 'pending' && <span className="badge">{t(incoming ? 'dorm.pendingIn' : 'dorm.pendingOut')}</span>}
+                <div style={{ fontWeight: 600 }}>{d?.name ?? '—'}</div>
+                {d?.address && <div className="small muted">📍 {d.address}</div>}
+                {f.status === 'pending' && <span className="badge" style={{ marginTop: 4 }}>{t(incoming ? 'dorm.pendingIn' : 'dorm.pendingOut')}</span>}
               </div>
               {isBoard && incoming && (
                 <div className="row">
@@ -110,17 +130,47 @@ export default function DormSection() {
           )
         })}
       </div>
-      {isBoard && (
-        <div className="row">
-          <select className="grow" value={pickDorm} onChange={(e) => setPickDorm(e.target.value)}>
-            <option value="">{t('dorm.chooseDorm')}</option>
-            {dorms.filter((d) => d.id !== dormId && !taken.has(d.id)).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-          <button className="ghost" disabled={!pickDorm} onClick={() => { run(() => supabase.rpc('request_friendship', { p_to: pickDorm })); setPickDorm('') }}>
-            {t('dorm.requestFriend')}
-          </button>
-        </div>
+
+      {isBoard && !finding && (
+        <button className="ghost" onClick={() => setFinding(true)}>🔎 {t('dorm.findFriend')}</button>
       )}
+      {isBoard && finding && (() => {
+        const q = search.trim().toLowerCase()
+        const list = dorms
+          .filter((d) => d.id !== dormId && !taken.has(d.id))
+          .filter((d) => !q || d.name.toLowerCase().includes(q) || (d.address ?? '').toLowerCase().includes(q))
+        return (
+          <div className="card stack">
+            <div className="row">
+              <strong className="grow">{t('dorm.findFriend')}</strong>
+              <button className="link small" onClick={() => { setFinding(false); setSearch('') }}>{t('prof.close')}</button>
+            </div>
+            <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('dorm.searchPh')} autoFocus />
+            {list.length === 0 ? (
+              <div className="muted small">{t('dorm.noDorms')}</div>
+            ) : (
+              <div className="stack" style={{ gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+                {list.map((d) => (
+                  <div key={d.id} className="row" style={{ border: '1px solid var(--line)', borderRadius: 10, padding: '10px 12px', alignItems: 'center' }}>
+                    <div className="grow">
+                      <div style={{ fontWeight: 600 }}>{d.name}</div>
+                      <div className="small muted">
+                        {d.address ? `📍 ${d.address}` : t('dorm.noAddress')}
+                      </div>
+                      {d.resident_count !== undefined && (
+                        <div className="small muted">{t('dorm.size', { halls: d.hall_count ?? 0, residents: d.resident_count })}</div>
+                      )}
+                    </div>
+                    <button onClick={() => { run(() => supabase.rpc('request_friendship', { p_to: d.id })); setFinding(false); setSearch('') }}>
+                      {t('dorm.requestFriend')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
     </>
   )
 }

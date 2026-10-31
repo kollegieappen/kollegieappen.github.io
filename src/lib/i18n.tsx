@@ -276,6 +276,14 @@ const da = {
   'help.all': 'Al hjælp og FAQ',
   'help.meHint': 'Søg i spørgsmål, roller og vejledninger',
 
+  'dorm.address': 'Adresse',
+  'dorm.noAddress': 'Ingen adresse angivet',
+  'dorm.addressPh': 'Fx Ryesgade 25, 2200 København N',
+  'dorm.findFriend': 'Find et venskabskollegie',
+  'dorm.searchPh': 'Søg på navn eller adresse',
+  'dorm.noDorms': 'Ingen kollegier matcher.',
+  'dorm.size': '{halls} gange · {residents} beboere',
+
   'cal.title': 'Kalender',
   'cal.new': 'Nyt event',
   'cal.edit': 'Redigér event',
@@ -624,6 +632,14 @@ const en: Record<Key, string> = {
   'help.noResults': 'No results. Try another word.',
   'help.all': 'All help and FAQ',
   'help.meHint': 'Search questions, roles and guides',
+
+  'dorm.address': 'Address',
+  'dorm.noAddress': 'No address given',
+  'dorm.addressPh': 'E.g. Ryesgade 25, 2200 Copenhagen N',
+  'dorm.findFriend': 'Find a friend dorm',
+  'dorm.searchPh': 'Search by name or address',
+  'dorm.noDorms': 'No dorms match.',
+  'dorm.size': '{halls} halls · {residents} residents',
 
   'cal.title': 'Calendar',
   'cal.new': 'New event',

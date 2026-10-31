@@ -144,7 +144,8 @@ const da: HelpContent = {
           'Bestyrelsesmedlemmer og administrationen kan tilføje og fjerne medlemmer.'
         ] },
         { title: 'Venskabskollegier', items: [
-          'Bestyrelsen kan sende en anmodning til et andet kollegie og acceptere eller afvise anmodninger.',
+          'Bestyrelsen trykker "Find et venskabskollegie", søger på navn eller adresse og sender en anmodning. Bestyrelsen kan også acceptere eller afvise anmodninger.',
+          'Bestyrelsen og administrationen kan rette kollegiets adresse under Adresse.',
           'Når I er venner, deler I fanen Venskab i Opslag og kan lave venskabsevents i kalenderen.'
         ] }
       ]
@@ -389,7 +390,8 @@ const en: HelpContent = {
           'Board members and the administration can add and remove members.'
         ] },
         { title: 'Friend dorms', items: [
-          'The board can send a request to another dorm and accept or reject requests.',
+          'The board taps "Find a friend dorm", searches by name or address and sends a request. The board can also accept or reject requests.',
+          'The board and administration can edit the dorm address under Address.',
           'Once friends, you share the Friends tab in Board and can create friend events in the calendar.'
         ] }
       ]
