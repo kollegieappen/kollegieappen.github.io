@@ -132,7 +132,8 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
   const [editing, setEditing] = useState<Task | null>(null)
   const [formKey, setFormKey] = useState(0)
   const [genTask, setGenTask] = useState('')
-  const [rounds, setRounds] = useState(2)
+  const [rounds, setRounds] = useState(2) // 0 = selvvalgt antal uger
+  const [customWeeks, setCustomWeeks] = useState(10)
   const task = tasks.find((x) => x.id === genTask) ?? tasks[0]
   // Antal uger, så alle beboere får lige mange ture: (uger × dage pr. uge) skal gå op i antal beboere.
   const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a)
@@ -140,7 +141,9 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
   const n = Math.max(memberCount, 1)
   const weeksPerRound = n / gcd(n, perWeek)
   const roundOptions = Array.from({ length: 8 }, (_, i) => i + 1).filter((r) => r * weeksPerRound <= 52)
-  const weeks = Math.min(rounds, roundOptions.at(-1) ?? 1) * weeksPerRound
+  const weeks = rounds === 0
+    ? Math.min(Math.max(Math.round(customWeeks) || 1, 1), 52)
+    : Math.min(rounds, roundOptions.at(-1) ?? 1) * weeksPerRound
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function removeTask(task: Task) {
@@ -233,11 +236,18 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
               <select className="grow" value={genTask || tasks[0].id} onChange={(e) => setGenTask(e.target.value)} aria-label={t('clean.generateFor')}>
                 {tasks.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
               </select>
-              <select style={{ width: 'auto' }} value={Math.min(rounds, roundOptions.at(-1) ?? 1)} onChange={(e) => setRounds(Number(e.target.value))}>
+              <select style={{ width: 'auto' }} value={rounds === 0 ? 0 : Math.min(rounds, roundOptions.at(-1) ?? 1)} onChange={(e) => setRounds(Number(e.target.value))}>
                 {roundOptions.map((r) => (
                   <option key={r} value={r}>{t('clean.weeks', { n: r * weeksPerRound })} · {t('clean.turns', { n: (r * weeksPerRound * perWeek) / n })}</option>
                 ))}
+                <option value={0}>{t('clean.customWeeks')}</option>
               </select>
+              {rounds === 0 && (
+                <input
+                  type="number" min={1} max={52} value={customWeeks} style={{ width: 72 }}
+                  onChange={(e) => setCustomWeeks(Number(e.target.value))} aria-label={t('clean.customWeeks')}
+                />
+              )}
             </div>
             <div className="small muted">{t('clean.generateHint')}</div>
             <button onClick={generate}>{t('clean.generate')}</button>
