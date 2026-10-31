@@ -20,6 +20,16 @@ Indkøbsliste, kalender og opslagstavle for gangen og kollegiet. En web-app (PWA
 
 Hver push til `main` bygger og udgiver appen automatisk.
 
+## Opdateringer af databasen
+
+Kør filerne i `supabase/migrations/` i nummerrækkefølge i SQL Editor. Hver fil køres kun én gang.
+
+## Push-notifikationer (fase 2)
+
+1. Supabase → Edge Functions → Deploy a new function → Via Editor. Navn: `push`. Indsæt `supabase/functions/push/index.ts` og deploy.
+2. Edge Functions → Secrets: tilføj `VAPID_PUBLIC_KEY` og `VAPID_PRIVATE_KEY`. Den offentlige nøgle står i `src/lib/push.ts`. Den private nøgle ligger ikke i repository'et.
+3. Kør `0005_paamindelser_cron.sql`, så rengøringspåmindelser sendes hver time.
+
 ## Lokal udvikling
 
 ```bash
@@ -32,6 +42,7 @@ npm run dev
 | Sti | Indhold |
 | --- | --- |
 | `supabase/migrations/` | Tabeller, RLS-regler og funktioner |
+| `supabase/functions/push/` | Sender push-notifikationer |
 | `src/lib/` | Supabase-klient, login-session, dansk/engelsk tekst |
 | `src/pages/` | Skærmene: Indkøb, Kalender, Opslag, Gangen, Mig, Admin |
 | `.github/workflows/deploy.yml` | Bygger og udgiver til GitHub Pages |

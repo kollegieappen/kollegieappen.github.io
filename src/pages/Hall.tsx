@@ -3,11 +3,37 @@ import { supabase, errorKey, APP_URL, type Hall } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TopBar, TrashIcon } from '../ui'
+import Cleaning from './Cleaning'
+import SharedItems from './SharedItems'
 
 type Member = { user_id: string; is_moderator: boolean; joined_at: string; profile: { display_name: string } | null }
 type Invite = { code: string; hall_id: string; uses: number; max_uses: number; expires_at: string }
 
 export default function HallPage() {
+  const { t } = useI18n()
+  const { membership } = useSession()
+  const [tab, setTab] = useState<'cleaning' | 'shared' | 'members'>(() => {
+    try { return (sessionStorage.getItem('ka.hallTab') as 'cleaning') ?? 'cleaning' } catch { return 'cleaning' }
+  })
+  const pick = (v: typeof tab) => { setTab(v); try { sessionStorage.setItem('ka.hallTab', v) } catch { /* ignore */ } }
+  return (
+    <>
+      <TopBar title={membership!.hall.name} />
+      <main className="stack">
+        <div className="seg">
+          <button className={tab === 'cleaning' ? 'on' : ''} onClick={() => pick('cleaning')}>{t('hall.tabCleaning')}</button>
+          <button className={tab === 'shared' ? 'on' : ''} onClick={() => pick('shared')}>{t('hall.tabShared')}</button>
+          <button className={tab === 'members' ? 'on' : ''} onClick={() => pick('members')}>{t('hall.tabMembers')}</button>
+        </div>
+        {tab === 'cleaning' && <Cleaning />}
+        {tab === 'shared' && <SharedItems />}
+        {tab === 'members' && <Members />}
+      </main>
+    </>
+  )
+}
+
+function Members() {
   const { t, locale } = useI18n()
   const { membership, session, refresh } = useSession()
   const isMod = !!membership?.is_moderator
@@ -19,6 +45,7 @@ export default function HallPage() {
   const [newHall, setNewHall] = useState('')
   const [copied, setCopied] = useState('')
   const [error, setError] = useState('')
+  const [phones, setPhones] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     const [m, h, i] = await Promise.all([
@@ -33,6 +60,8 @@ export default function HallPage() {
     setMembers((m.data as unknown as Member[]) ?? [])
     setHalls((h.data as Hall[]) ?? [])
     setInvites(((i.data as Invite[]) ?? []).filter((x) => x.uses < x.max_uses))
+    const ph = await supabase.from('phone_numbers').select('user_id, phone')
+    setPhones(Object.fromEntries(((ph.data as { user_id: string; phone: string }[]) ?? []).map((x) => [x.user_id, x.phone])))
   }, [membership, isMod])
 
   useEffect(() => { load() }, [load])
@@ -64,9 +93,7 @@ export default function HallPage() {
   }
 
   return (
-    <>
-      <TopBar title={membership!.hall.name} />
-      <main className="stack">
+    <div className="stack">
         {error && <div className="error">{error}</div>}
 
         <div className="section-title">{t('hall.members')} · {members.length}</div>
@@ -78,6 +105,11 @@ export default function HallPage() {
                   {m.profile?.display_name ?? '—'}
                   {m.user_id === me && <span className="muted"> ({t('common.you')})</span>}
                 </div>
+                {phones[m.user_id] && (
+                  <a className="small" href={`tel:${phones[m.user_id].replace(/\s/g, '')}`} style={{ color: 'var(--brand)', marginRight: 8 }}>
+                    {phones[m.user_id]}
+                  </a>
+                )}
                 {m.is_moderator && <span className="badge">{t('hall.moderator')}</span>}
               </div>
               {isMod && m.user_id !== me && (
@@ -155,7 +187,6 @@ export default function HallPage() {
             <button type="submit" className="ghost" disabled={!newHall.trim()}>{t('hall.newHall')}</button>
           </form>
         )}
-      </main>
-    </>
+    </div>
   )
 }

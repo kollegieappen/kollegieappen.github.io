@@ -12,6 +12,8 @@ export default function Shopping() {
   const hallId = membership!.hall_id
   const [items, setItems] = useState<Item[] | null>(null)
   const [text, setText] = useState('')
+  const [note, setNote] = useState('')
+  const [sending, setSending] = useState(false)
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -39,6 +41,17 @@ export default function Shopping() {
     await supabase.from('shopping_items').update({ done: !item.done }).eq('id', item.id)
   }
 
+  async function notify() {
+    if (!confirm(t('shop.notifyConfirm'))) return
+    setSending(true); setNote('')
+    const { data, error } = await supabase.functions.invoke('push', { body: { type: 'shopping' } })
+    setSending(false)
+    if (error) return setNote(t('shop.notifyError'))
+    const n = (data as { sent?: number })?.sent ?? 0
+    setNote(n > 0 ? t('shop.notifySent', { n }) : t('shop.notifyNone'))
+    setTimeout(() => setNote(''), 4000)
+  }
+
   async function clearDone() {
     const ids = items?.filter((i) => i.done).map((i) => i.id) ?? []
     setItems((prev) => prev?.filter((i) => !i.done) ?? null)
@@ -64,10 +77,14 @@ export default function Shopping() {
         ) : (
           <>
             {open.length > 0 && (
-              <div className="list">
-                {open.map((i) => <Row key={i.id} item={i} onToggle={toggle} />)}
-              </div>
+              <>
+                <div className="list">
+                  {open.map((i) => <Row key={i.id} item={i} onToggle={toggle} />)}
+                </div>
+                <button className="ghost" onClick={notify} disabled={sending}>🔔 {t('shop.notify')}</button>
+              </>
             )}
+            {note && <div className="notice">{note}</div>}
             {done.length > 0 && (
               <>
                 <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
