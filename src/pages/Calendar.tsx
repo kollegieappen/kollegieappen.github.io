@@ -48,13 +48,14 @@ export default function Calendar() {
   const load = useCallback(async () => {
     let q = supabase
       .from('events')
-      .select('id, hall_id, dorm_id, title, description, location, starts_at, ends_at, created_by, is_friends, author:profiles(display_name), dorm:dorms(name)')
+      .select('id, hall_id, dorm_id, title, description, location, starts_at, ends_at, created_by, is_friends, author:profiles!events_created_by_fkey(display_name), dorm:dorms(name)')
       .or(`hall_id.eq.${membership!.hall_id},dorm_id.eq.${membership!.dorm.id},is_friends.eq.true`)
       .gte('starts_at', fromKey)
       .order('starts_at')
       .limit(300)
     if (toKey) q = q.lt('starts_at', toKey)
-    const { data } = await q
+    const { data, error } = await q
+    if (error) console.error('events', error)
     const list = (data as unknown as Ev[]) ?? []
     setEvents(list)
     const ids = list.map((e) => e.id)

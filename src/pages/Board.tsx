@@ -57,13 +57,14 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
   const load = useCallback(async () => {
     let q = supabase
       .from('posts')
-      .select('id, body, created_at, edited_at, created_by, hall_id, dorm_id, kind, is_friends, dorm:dorms(name), author:profiles(display_name, memberships(hall:halls(name)))')
+      .select('id, body, created_at, edited_at, created_by, hall_id, dorm_id, kind, is_friends, dorm:dorms(name), author:profiles!posts_created_by_fkey(display_name, memberships(hall:halls(name)))')
       .order('created_at', { ascending: false })
       .limit(100)
     if (tab === 'hall') q = q.eq('hall_id', membership!.hall_id)
     else if (tab === 'dorm') q = q.eq('dorm_id', membership!.dorm.id).eq('is_friends', false)
     else q = q.eq('is_friends', true)
-    const { data } = await q
+    const { data, error } = await q
+    if (error) console.error('posts', error)
     const list = (data as unknown as Post[]) ?? []
     setPosts(list)
     const ids = list.map((p) => p.id)
