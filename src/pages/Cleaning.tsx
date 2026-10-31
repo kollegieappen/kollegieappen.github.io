@@ -293,7 +293,7 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
                   {task.weekdays.map((d) => t('clean.days').split(',')[d - 1]).join(', ')} · {t(task.remind_days_before ? 'clean.remindDayBefore' : 'clean.remindSameDay')} {pad(task.remind_hour)}:00
                 </div>
               </div>
-              <button className="icon" aria-label={t('cal.edit')} onClick={() => { setEditing(task); setFormKey((k) => k + 1) }}><EditIcon /></button>
+              <button className="icon" aria-label={t('common.edit')} onClick={() => { setEditing(task); setFormKey((k) => k + 1) }}><EditIcon /></button>
               <button className="icon" aria-label={t('common.delete')} onClick={() => removeTask(task)}><TrashIcon /></button>
             </div>
           ))}

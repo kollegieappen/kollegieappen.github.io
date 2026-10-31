@@ -59,7 +59,7 @@ export default function Info() {
               <div className="card" key={i.id}>
                 <div className="row" style={{ alignItems: 'flex-start' }}>
                   <strong className="grow">{i.question}</strong>
-                  {canEdit(i) && <button className="icon" onClick={() => setEditing(i.id)} aria-label={t('cal.edit')}><EditIcon /></button>}
+                  {canEdit(i) && <button className="icon" onClick={() => setEditing(i.id)} aria-label={t('common.edit')}><EditIcon /></button>}
                   {canDelete(i) && <button className="icon" onClick={() => remove(i)} aria-label={t('common.delete')}><TrashIcon /></button>}
                 </div>
                 {i.answer && <div className="post" style={{ marginTop: 4 }}>{i.answer}</div>}

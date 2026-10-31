@@ -91,7 +91,7 @@ export default function DormSection() {
         <div className="card row">
           <span className="grow">📍 {dorms.find((d) => d.id === dormId)?.address || <span className="muted">{t('dorm.noAddress')}</span>}</span>
           {canBoard && (
-            <button className="link small" onClick={() => setEditAddr(dorms.find((d) => d.id === dormId)?.address ?? '')}>{t('cal.edit')}</button>
+            <button className="link small" onClick={() => setEditAddr(dorms.find((d) => d.id === dormId)?.address ?? '')}>{t('dorm.editAddress')}</button>
           )}
         </div>
       ) : (
@@ -123,7 +123,7 @@ export default function DormSection() {
               )}
               {isBoard && !incoming && (
                 <button className="link small" onClick={() => confirm(t('common.confirm')) && run(() => supabase.rpc('end_friendship', { p_id: f.id }))}>
-                  {t('dorm.end')}
+                  {t(f.status === 'pending' ? 'dorm.cancelRequest' : 'dorm.end')}
                 </button>
               )}
             </div>
