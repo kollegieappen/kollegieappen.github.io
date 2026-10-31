@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
@@ -14,9 +14,25 @@ function storedCode() {
 
 export default function Onboarding() {
   const { t } = useI18n()
-  const { refresh, isSuperadmin } = useSession()
+  const { refresh, isSuperadmin, session } = useSession()
   const params = useParams()
-  const [code, setCode] = useState(() => (params.code ?? storedCode()).toUpperCase())
+  const metaCode = (session?.user.user_metadata?.join_code as string | undefined) ?? ''
+  const [code, setCode] = useState(() => (params.code ?? (storedCode() || metaCode)).toUpperCase())
+  const [autoJoining, setAutoJoining] = useState(false)
+  const tried = useRef(false)
+
+  // Kom man via et invitationslink, bruges koden automatisk – ingen ekstra klik.
+  useEffect(() => {
+    if (tried.current || code.length !== 6) return
+    tried.current = true
+    setAutoJoining(true)
+    supabase.rpc('join_with_code', { p_code: code }).then(async ({ error }) => {
+      if (metaCode) await supabase.auth.updateUser({ data: { join_code: null } })
+      if (error) { setAutoJoining(false); setError(t(errorKey(error))); return }
+      window.location.hash = '#/'
+      await refresh()
+    })
+  }, [code, metaCode, refresh, t])
   const [showRequest, setShowRequest] = useState(false)
   const [dormName, setDormName] = useState('')
   const [address, setAddress] = useState('')
@@ -47,6 +63,8 @@ export default function Onboarding() {
     if (error) return setError(t(errorKey(error)))
     await refresh()
   }
+
+  if (autoJoining) return <div className="center-screen muted">{t('onb.joining')}</div>
 
   return (
     <div className="app">

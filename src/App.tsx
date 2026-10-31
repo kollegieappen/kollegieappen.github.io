@@ -9,6 +9,8 @@ import Board from './pages/Board'
 import HallPage from './pages/Hall'
 import Me from './pages/Me'
 import Admin from './pages/Admin'
+import Welcome, { hasSeenWelcome } from './pages/Welcome'
+import { useState } from 'react'
 
 const icons: Record<string, string> = {
   shopping: 'M4 5h2l2.2 10.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L20 8H7 M10 20h.01 M17 20h.01',
@@ -58,6 +60,7 @@ function TabBar() {
 export default function App() {
   const { ready, session, membership, isSuperadmin, adminDorms, recovering } = useSession()
   const { t } = useI18n()
+  const [, rerender] = useState(0)
 
   if (!ready) return <div className="center-screen muted">{t('common.loading')}</div>
   if (recovering) return <NewPassword />
@@ -98,6 +101,10 @@ export default function App() {
         <Route path="*" element={<Pending />} />
       </Routes>
     )
+  }
+
+  if (!hasSeenWelcome(session.user.id) || window.location.hash === '#/velkommen') {
+    return <Welcome onDone={() => rerender((n) => n + 1)} />
   }
 
   return (

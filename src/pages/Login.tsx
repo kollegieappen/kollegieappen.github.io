@@ -5,17 +5,17 @@ import { useSession } from '../lib/session'
 
 export default function Login() {
   const { t, lang, setLang } = useI18n()
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  // Gem en invitationskode fra et delt link, så den kan bruges efter login.
+  const joinMatch = window.location.hash.match(/#\/join\/([A-Za-z0-9]+)/)
+  if (joinMatch) try { localStorage.setItem('ka.joinCode', joinMatch[1].toUpperCase()) } catch { /* ignore */ }
+  const inviteCode = (() => { try { return localStorage.getItem('ka.joinCode') ?? '' } catch { return '' } })()
+  const [mode, setMode] = useState<'login' | 'signup'>(inviteCode ? 'signup' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
-
-  // Gem en invitationskode fra et delt link, så den kan bruges efter login.
-  const joinMatch = window.location.hash.match(/#\/join\/([A-Za-z0-9]+)/)
-  if (joinMatch) try { localStorage.setItem('ka.joinCode', joinMatch[1]) } catch { /* ignore */ }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -26,7 +26,7 @@ export default function Login() {
     } else {
       const { data, error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: APP_URL, data: { display_name: name.trim(), language: lang } }
+        options: { emailRedirectTo: APP_URL, data: { display_name: name.trim(), language: lang, ...(inviteCode ? { join_code: inviteCode } : {}) } }
       })
       if (error) setError(t(errorKey(error)))
       else if (!data.session) { setInfo(t('auth.checkMail')); setMode('login') }
@@ -51,6 +51,7 @@ export default function Login() {
           <h1>{t('app.name')}</h1>
           <p className="muted" style={{ margin: 0 }}>{t('auth.tagline')}</p>
         </div>
+        {inviteCode && !info && <div className="notice">✉️ {t('auth.invited', { code: inviteCode })}</div>}
         {info && <div className="notice">{info}</div>}
         {mode === 'signup' && (
           <div>

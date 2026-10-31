@@ -67,6 +67,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           }
         : null
     )
+    // Medlem af en gang → en gemt invitationskode er brugt op.
+    if (row) try { localStorage.removeItem('ka.joinCode') } catch { /* ignore */ }
     setIsSuperadmin(!!a.data)
     setIsBoard(!!b.data?.length)
     setAdminDorms(((ad.data as unknown as { dorms: Dorm | null }[]) ?? []).map((r) => r.dorms).filter((d): d is Dorm => !!d && d.status === 'approved'))

@@ -124,6 +124,7 @@ export default function Me() {
           <strong>{t('me.install')}</strong>
           <div className="small muted">{t('me.installIos')}</div>
           <div className="small muted">{t('me.installAndroid')}</div>
+          {membership && <button className="link small" style={{ alignSelf: 'flex-start', padding: 0 }} onClick={() => { window.location.hash = '#/velkommen' }}>{t('welcome.again')}</button>}
         </div>
 
         {error && <div className="error">{error}</div>}
