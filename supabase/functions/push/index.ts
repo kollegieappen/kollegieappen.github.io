@@ -2,7 +2,7 @@
 // Sender web push-notifikationer.
 //
 //   { "type": "shopping" }   – en beboer giver gangen besked om indkøbslisten (kræver login)
-//   { "type": "reminders" }  – sender dagens rengøringspåmindelser, der er forfaldne (kaldes af cron)
+//   { "type": "reminders" }  – sender forfaldne påmindelser om tjanser (rengøring, fællesspisning …) (kaldes af cron)
 //
 // Secrets, der skal sættes i Supabase (Edge Functions → Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
@@ -106,24 +106,29 @@ function nowInCopenhagen() {
 
 async function reminders() {
   const { date, hour } = nowInCopenhagen()
+  const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1)
+  const tomorrow = d.toISOString().slice(0, 10)
   const { data: shifts } = await admin
     .from('cleaning_shifts')
-    .select('id, user_id, cleaning_tasks(title, description, remind_hour)')
-    .eq('date', date)
+    .select('id, user_id, date, cleaning_tasks(title, description, remind_hour, remind_days_before, emoji)')
+    .in('date', [date, tomorrow])
     .eq('reminded', false)
     .not('user_id', 'is', null)
+  type Task = { title: string; description: string | null; remind_hour: number; remind_days_before: number; emoji: string }
   const due = (shifts ?? []).filter((s) => {
-    const task = s.cleaning_tasks as unknown as { remind_hour: number } | null
-    return task && task.remind_hour <= hour
+    const task = s.cleaning_tasks as unknown as Task | null
+    if (!task || task.remind_hour > hour) return false
+    return task.remind_days_before === 1 ? s.date === tomorrow : s.date === date
   })
   let sent = 0
   for (const s of due) {
-    const task = s.cleaning_tasks as unknown as { title: string; description: string | null }
+    const task = s.cleaning_tasks as unknown as Task
+    const soon = s.date === tomorrow
     sent += await sendTo([s.user_id!], (lang) => ({
-      title: lang === 'da' ? `Rengøring i dag: ${task.title}` : `Cleaning today: ${task.title}`,
-      body: task.description || (lang === 'da' ? 'Det er din tur i dag.' : "It's your turn today."),
+      title: `${task.emoji ?? ''} ${task.title} ${lang === 'da' ? (soon ? 'i morgen' : 'i dag') : (soon ? 'tomorrow' : 'today')}`.trim(),
+      body: task.description || (lang === 'da' ? (soon ? 'Det er din tur i morgen.' : 'Det er din tur i dag.') : (soon ? "It's your turn tomorrow." : "It's your turn today.")),
       url: '/#/gang',
-      tag: 'cleaning-' + s.id
+      tag: 'duty-' + s.id
     }))
     await admin.from('cleaning_shifts').update({ reminded: true }).eq('id', s.id)
   }

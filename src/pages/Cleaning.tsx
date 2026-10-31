@@ -4,7 +4,12 @@ import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { EditIcon, TrashIcon, useRealtime } from '../ui'
 
-type Task = { id: string; title: string; description: string | null; weekdays: number[]; remind_hour: number }
+type Task = {
+  id: string; title: string; description: string | null; weekdays: number[]; remind_hour: number
+  emoji?: string; people_per_shift?: number; remind_days_before?: number
+}
+
+const EMOJIS = ['🧹', '🍝', '🗑️', '🧽', '🚿', '🧺', '♻️', '🍳', '🛒', '🌱']
 type Shift = { id: string; date: string; task_id: string; user_id: string | null; person: { display_name: string } | null }
 type Member = { user_id: string; profile: { display_name: string } | null }
 
@@ -21,18 +26,22 @@ export default function Cleaning() {
   const [shifts, setShifts] = useState<Shift[] | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [showManage, setShowManage] = useState(false)
+  const [only, setOnly] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
     const today = isoDate(new Date())
-    const [tk, sh, mb] = await Promise.all([
-      supabase.from('cleaning_tasks').select('id, title, description, weekdays, remind_hour').eq('hall_id', hallId).order('title'),
+    const tasksQ = (cols: string) => supabase.from('cleaning_tasks').select(cols).eq('hall_id', hallId).order('title')
+    const [tk0, sh, mb] = await Promise.all([
+      tasksQ('id, title, description, weekdays, remind_hour, emoji, people_per_shift, remind_days_before'),
       supabase.from('cleaning_shifts').select('id, date, task_id, user_id, person:profiles(display_name)')
-        .eq('hall_id', hallId).gte('date', today).order('date').limit(300),
+        .eq('hall_id', hallId).gte('date', today).order('date').order('task_id').limit(400),
       supabase.from('memberships').select('user_id, profile:profiles(display_name)').eq('hall_id', hallId).order('joined_at')
     ])
-    setTasks((tk.data as Task[]) ?? [])
+    // Fallback, hvis 0007-opsætningen endnu ikke er kørt.
+    const tk = tk0.error ? await tasksQ('id, title, description, weekdays, remind_hour') : tk0
+    setTasks((tk.data as unknown as Task[]) ?? [])
     setShifts((sh.data as unknown as Shift[]) ?? [])
     setMembers((mb.data as unknown as Member[]) ?? [])
   }, [hallId])
@@ -40,7 +49,10 @@ export default function Cleaning() {
   useEffect(() => { load() }, [load])
   useRealtime(['cleaning_shifts'], load)
 
-  const taskName = (id: string) => tasks.find((x) => x.id === id)?.title ?? ''
+  const taskName = (id: string) => {
+    const x = tasks.find((y) => y.id === id)
+    return x ? `${x.emoji ?? '🧹'} ${x.title}` : ''
+  }
   const dayName = (d: string) => {
     const s = new Date(d + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' })
     return s.charAt(0).toUpperCase() + s.slice(1)
@@ -55,7 +67,8 @@ export default function Cleaning() {
   }
 
   const byDate = new Map<string, Shift[]>()
-  for (const s of (shifts ?? []).slice(0, 60)) byDate.set(s.date, [...(byDate.get(s.date) ?? []), s])
+  const visible = (shifts ?? []).filter((s) => !only || s.task_id === only)
+  for (const s of visible.slice(0, 80)) byDate.set(s.date, [...(byDate.get(s.date) ?? []), s])
 
   return (
     <div className="stack">
@@ -83,6 +96,14 @@ export default function Cleaning() {
       ) : (
         <>
           <div className="section-title">{t('clean.upcoming')}</div>
+          {tasks.length > 1 && (
+            <div className="seg" style={{ flexWrap: 'wrap' }}>
+              <button className={!only ? 'on' : ''} onClick={() => setOnly('')}>{t('common.all')}</button>
+              {tasks.map((x) => (
+                <button key={x.id} className={only === x.id ? 'on' : ''} onClick={() => setOnly(x.id)}>{x.emoji ?? '🧹'} {x.title}</button>
+              ))}
+            </div>
+          )}
           <div className="list">
             {[...byDate.entries()].map(([date, list]) => list.map((s, i) => (
               <div className="item" key={s.id}>
@@ -137,8 +158,8 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
   const task = tasks.find((x) => x.id === genTask) ?? tasks[0]
   // Antal uger, så alle beboere får lige mange ture: (uger × dage pr. uge) skal gå op i antal beboere.
   const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a)
-  const perWeek = task?.weekdays.length || 1
   const n = Math.max(memberCount, 1)
+  const perWeek = (task?.weekdays.length || 1) * Math.min(task?.people_per_shift ?? 1, n)
   const weeksPerRound = n / gcd(n, perWeek)
   const roundOptions = Array.from({ length: 8 }, (_, i) => i + 1).filter((r) => r * weeksPerRound <= 52)
   const weeks = rounds === 0
@@ -164,14 +185,14 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
   }
 
   function exportCsv() {
-    const rows = ['dato;opgave;navn', ...shifts.map((s) => {
+    const rows = ['dato;tjans;navn', ...shifts.map((s) => {
       const task = tasks.find((x) => x.id === s.task_id)?.title ?? ''
       return [s.date, task, s.person?.display_name ?? ''].map((v) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)).join(';')
     })]
     const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `rengoering-${isoDate(new Date())}.csv`
+    a.download = `tjanser-${isoDate(new Date())}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -215,9 +236,9 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
           {tasks.map((task) => (
             <div className="item" key={task.id}>
               <div className="grow">
-                <div>{task.title}</div>
+                <div>{task.emoji ?? '🧹'} {task.title}{(task.people_per_shift ?? 1) > 1 && <span className="muted small"> · {t('clean.perDay', { n: task.people_per_shift! })}</span>}</div>
                 <div className="small muted">
-                  {task.weekdays.map((d) => t('clean.days').split(',')[d - 1]).join(', ')} · {t('clean.remindAt')} {pad(task.remind_hour)}:00
+                  {task.weekdays.map((d) => t('clean.days').split(',')[d - 1]).join(', ')} · {t(task.remind_days_before ? 'clean.remindDayBefore' : 'clean.remindSameDay')} {pad(task.remind_hour)}:00
                 </div>
               </div>
               <button className="icon" aria-label={t('cal.edit')} onClick={() => { setEditing(task); setFormKey((k) => k + 1) }}><EditIcon /></button>
@@ -279,13 +300,19 @@ function TaskForm({ task, hallId, onDone, setError }: {
   const [description, setDescription] = useState(task?.description ?? '')
   const [days, setDays] = useState<number[]>(task?.weekdays ?? [])
   const [hour, setHour] = useState(task?.remind_hour ?? 10)
+  const [emoji, setEmoji] = useState(task?.emoji ?? '🧹')
+  const [people, setPeople] = useState(task?.people_per_shift ?? 1)
+  const [dayBefore, setDayBefore] = useState(task?.remind_days_before ?? 0)
   const [busy, setBusy] = useState(false)
   const labels = t('clean.days').split(',')
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setBusy(true); setError('')
-    const fields = { title: title.trim(), description: description.trim() || null, weekdays: [...days].sort(), remind_hour: hour }
+    const fields = {
+      title: title.trim(), description: description.trim() || null, weekdays: [...days].sort(), remind_hour: hour,
+      emoji, people_per_shift: people, remind_days_before: dayBefore
+    }
     const { error } = task
       ? await supabase.from('cleaning_tasks').update(fields).eq('id', task.id)
       : await supabase.from('cleaning_tasks').insert({ ...fields, hall_id: hallId })
@@ -297,9 +324,17 @@ function TaskForm({ task, hallId, onDone, setError }: {
   return (
     <form className="card stack" onSubmit={submit}>
       <strong>{task ? task.title : t('clean.newTask')}</strong>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 4 }}>
+        {EMOJIS.map((e) => (
+          <button type="button" key={e} onClick={() => setEmoji(e)} className="ghost"
+            style={{ padding: '6px 8px', fontSize: 18, borderColor: emoji === e ? 'var(--brand)' : 'var(--line)', borderWidth: emoji === e ? 2 : 1 }}>
+            {e}
+          </button>
+        ))}
+      </div>
       <div>
         <label htmlFor="tt">{t('clean.taskTitle')}</label>
-        <input id="tt" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={80} placeholder="Køkken, badeværelse, skrald…" />
+        <input id="tt" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={80} placeholder={t('clean.taskPh')} />
       </div>
       <div>
         <label htmlFor="td">{t('clean.taskDesc')}</label>
@@ -320,7 +355,17 @@ function TaskForm({ task, hallId, onDone, setError }: {
         </div>
       </div>
       <div className="row">
-        <label htmlFor="th" style={{ margin: 0 }}>{t('clean.remindAt')}</label>
+        <label htmlFor="tp" style={{ margin: 0 }}>{t('clean.people')}</label>
+        <select id="tp" style={{ width: 'auto' }} value={people} onChange={(e) => setPeople(Number(e.target.value))}>
+          {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+      <div className="row" style={{ flexWrap: 'wrap' }}>
+        <label style={{ margin: 0 }}>{t('clean.remindAt')}</label>
+        <select style={{ width: 'auto' }} value={dayBefore} onChange={(e) => setDayBefore(Number(e.target.value))} aria-label={t('clean.remindAt')}>
+          <option value={0}>{t('clean.remindSameDay')}</option>
+          <option value={1}>{t('clean.remindDayBefore')}</option>
+        </select>
         <select id="th" style={{ width: 'auto' }} value={hour} onChange={(e) => setHour(Number(e.target.value))}>
           {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{pad(h)}:00</option>)}
         </select>
