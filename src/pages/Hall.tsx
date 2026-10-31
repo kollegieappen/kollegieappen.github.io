@@ -5,6 +5,8 @@ import { useSession } from '../lib/session'
 import { TopBar, TrashIcon } from '../ui'
 import Cleaning from './Cleaning'
 import SharedItems from './SharedItems'
+import Info from './Info'
+import DormSection from './DormSection'
 
 type Member = { user_id: string; is_moderator: boolean; joined_at: string; profile: { display_name: string } | null }
 type Invite = { code: string; hall_id: string; uses: number; max_uses: number; expires_at: string }
@@ -12,7 +14,7 @@ type Invite = { code: string; hall_id: string; uses: number; max_uses: number; e
 export default function HallPage() {
   const { t } = useI18n()
   const { membership } = useSession()
-  const [tab, setTab] = useState<'cleaning' | 'shared' | 'members'>(() => {
+  const [tab, setTab] = useState<'cleaning' | 'shared' | 'info' | 'members'>(() => {
     try { return (sessionStorage.getItem('ka.hallTab') as 'cleaning') ?? 'cleaning' } catch { return 'cleaning' }
   })
   const pick = (v: typeof tab) => { setTab(v); try { sessionStorage.setItem('ka.hallTab', v) } catch { /* ignore */ } }
@@ -20,13 +22,15 @@ export default function HallPage() {
     <>
       <TopBar title={membership!.hall.name} />
       <main className="stack">
-        <div className="seg">
+        <div className="seg" style={{ fontSize: 13 }}>
           <button className={tab === 'cleaning' ? 'on' : ''} onClick={() => pick('cleaning')}>{t('hall.tabCleaning')}</button>
           <button className={tab === 'shared' ? 'on' : ''} onClick={() => pick('shared')}>{t('hall.tabShared')}</button>
+          <button className={tab === 'info' ? 'on' : ''} onClick={() => pick('info')}>{t('info.tab')}</button>
           <button className={tab === 'members' ? 'on' : ''} onClick={() => pick('members')}>{t('hall.tabMembers')}</button>
         </div>
         {tab === 'cleaning' && <Cleaning />}
         {tab === 'shared' && <SharedItems />}
+        {tab === 'info' && <Info />}
         {tab === 'members' && <Members />}
       </main>
     </>
@@ -187,6 +191,7 @@ function Members() {
             <button type="submit" className="ghost" disabled={!newHall.trim()}>{t('hall.newHall')}</button>
           </form>
         )}
+        <DormSection />
     </div>
   )
 }

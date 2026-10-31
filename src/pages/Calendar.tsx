@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import { supabase, errorKey, type Scope } from '../lib/supabase'
+import { supabase, errorKey } from '../lib/supabase'
+
+type Scope = 'hall' | 'dorm' | 'friends'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { EditIcon, TopBar, TrashIcon, useRealtime } from '../ui'
@@ -7,8 +9,10 @@ import { EditIcon, TopBar, TrashIcon, useRealtime } from '../ui'
 type Ev = {
   id: string; hall_id: string | null; dorm_id: string | null; title: string
   description: string | null; location: string | null; starts_at: string; ends_at: string | null
-  created_by: string | null; author: { display_name: string } | null
+  created_by: string | null; is_friends: boolean; author: { display_name: string } | null; dorm: { name: string } | null
 }
+
+const scopeOf = (e: Ev): Scope => (e.is_friends ? 'friends' : e.hall_id ? 'hall' : 'dorm')
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -16,7 +20,7 @@ const localTime = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
 
 export default function Calendar() {
   const { t, locale } = useI18n()
-  const { membership, session, isSuperadmin, isBoard } = useSession()
+  const { membership, session, isSuperadmin, isBoard, hasFriends } = useSession()
   const [events, setEvents] = useState<Ev[] | null>(null)
   const [filter, setFilter] = useState<'all' | Scope>('all')
   const [editing, setEditing] = useState<Ev | null>(null)
@@ -27,8 +31,8 @@ export default function Calendar() {
     const start = new Date(); start.setHours(0, 0, 0, 0)
     const { data } = await supabase
       .from('events')
-      .select('id, hall_id, dorm_id, title, description, location, starts_at, ends_at, created_by, author:profiles(display_name)')
-      .or(`hall_id.eq.${membership!.hall_id},dorm_id.eq.${membership!.dorm.id}`)
+      .select('id, hall_id, dorm_id, title, description, location, starts_at, ends_at, created_by, is_friends, author:profiles(display_name), dorm:dorms(name)')
+      .or(`hall_id.eq.${membership!.hall_id},dorm_id.eq.${membership!.dorm.id},is_friends.eq.true`)
       .gte('starts_at', start.toISOString())
       .order('starts_at')
       .limit(200)
@@ -40,7 +44,8 @@ export default function Calendar() {
 
   // Samme regel som i databasen: opretter, moderator, bestyrelse eller superadmin.
   const canManage = (e: Ev) =>
-    e.created_by === session?.user.id || isSuperadmin || isBoard || !!membership?.is_moderator
+    e.created_by === session?.user.id || isSuperadmin ||
+    ((!!e.hall_id || e.dorm_id === membership!.dorm.id) && (isBoard || !!membership?.is_moderator))
 
   function open(ev: Ev | null) {
     setEditing(ev)
@@ -54,7 +59,7 @@ export default function Calendar() {
     load()
   }
 
-  const shown = (events ?? []).filter((e) => filter === 'all' || (filter === 'hall' ? e.hall_id : e.dorm_id))
+  const shown = (events ?? []).filter((e) => filter === 'all' || scopeOf(e) === filter)
   const days = new Map<string, Ev[]>()
   for (const e of shown) {
     const k = localDate(new Date(e.starts_at))
@@ -76,9 +81,9 @@ export default function Calendar() {
       <TopBar title={t('cal.title')} />
       <main className="stack">
         <div className="seg">
-          {(['all', 'hall', 'dorm'] as const).map((f) => (
+          {(['all', 'hall', 'dorm', ...(hasFriends ? ['friends'] as const : [])] as const).map((f) => (
             <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>
-              {t(f === 'all' ? 'common.all' : f === 'hall' ? 'common.hall' : 'common.dorm')}
+              {t(f === 'all' ? 'common.all' : f === 'hall' ? 'common.hall' : f === 'dorm' ? 'common.dorm' : 'cal.friends')}
             </button>
           ))}
         </div>
@@ -99,7 +104,9 @@ export default function Calendar() {
                       <div className="grow">
                         <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                           <strong>{e.title}</strong>
-                          <span className={'badge' + (e.dorm_id ? ' dorm' : '')}>{t(e.dorm_id ? 'common.dorm' : 'common.hall')}</span>
+                          <span className={'badge' + (e.dorm_id ? ' dorm' : '')}>
+                            {e.is_friends ? `${t('cal.friends')} · ${e.dorm?.name ?? ''}` : t(e.dorm_id ? 'common.dorm' : 'common.hall')}
+                          </span>
                         </div>
                         <div className="muted small">
                           {e.ends_at && <>– {time(e.ends_at)} · </>}
@@ -137,7 +144,7 @@ export default function Calendar() {
 
 function EventForm({ event, onDone, onCancel }: { event: Ev | null; onDone: () => void; onCancel: () => void }) {
   const { t } = useI18n()
-  const { membership } = useSession()
+  const { membership, hasFriends } = useSession()
   const start0 = event ? new Date(event.starts_at) : null
   const [title, setTitle] = useState(event?.title ?? '')
   const [date, setDate] = useState(start0 ? localDate(start0) : localDate(new Date()))
@@ -145,7 +152,7 @@ function EventForm({ event, onDone, onCancel }: { event: Ev | null; onDone: () =
   const [end, setEnd] = useState(event?.ends_at ? localTime(new Date(event.ends_at)) : '')
   const [location, setLocation] = useState(event?.location ?? '')
   const [description, setDescription] = useState(event?.description ?? '')
-  const [scope, setScope] = useState<Scope>(event?.dorm_id ? 'dorm' : 'hall')
+  const [scope, setScope] = useState<Scope>(event ? scopeOf(event) : 'hall')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -167,7 +174,8 @@ function EventForm({ event, onDone, onCancel }: { event: Ev | null; onDone: () =
       : await supabase.from('events').insert({
           ...fields,
           hall_id: scope === 'hall' ? membership!.hall_id : null,
-          dorm_id: scope === 'dorm' ? membership!.dorm.id : null
+          dorm_id: scope !== 'hall' ? membership!.dorm.id : null,
+          is_friends: scope === 'friends'
         })
     setBusy(false)
     if (error) return setError(t(errorKey(error)))
@@ -209,6 +217,7 @@ function EventForm({ event, onDone, onCancel }: { event: Ev | null; onDone: () =
           <div className="seg">
             <button type="button" className={scope === 'hall' ? 'on' : ''} onClick={() => setScope('hall')}>{membership!.hall.name}</button>
             <button type="button" className={scope === 'dorm' ? 'on' : ''} onClick={() => setScope('dorm')}>{membership!.dorm.name}</button>
+            {hasFriends && <button type="button" className={scope === 'friends' ? 'on' : ''} onClick={() => setScope('friends')}>{t('cal.friends')}</button>}
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase, type Membership, type Profile } from './supabase'
+import { supabase, type Dorm, type Membership, type Profile } from './supabase'
 import { useI18n } from './i18n'
 
 type Ctx = {
@@ -10,6 +10,8 @@ type Ctx = {
   membership: Membership | null
   isSuperadmin: boolean
   isBoard: boolean
+  adminDorms: Dorm[]
+  hasFriends: boolean
   recovering: boolean
   setRecovering: (v: boolean) => void
   refresh: () => Promise<void>
@@ -25,16 +27,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [membership, setMembership] = useState<Membership | null>(null)
   const [isSuperadmin, setIsSuperadmin] = useState(false)
   const [isBoard, setIsBoard] = useState(false)
+  const [adminDorms, setAdminDorms] = useState<Dorm[]>([])
+  const [hasFriends, setHasFriends] = useState(false)
   const [recovering, setRecovering] = useState(false)
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s)
     if (!s) {
-      setProfile(null); setMembership(null); setIsSuperadmin(false); setIsBoard(false); setReady(true)
+      setProfile(null); setMembership(null); setIsSuperadmin(false); setIsBoard(false); setAdminDorms([]); setHasFriends(false); setReady(true)
       return
     }
     const uid = s.user.id
-    const [p, m, a, b] = await Promise.all([
+    const [p, m, a, b, ad, fr] = await Promise.all([
       supabase.from('profiles').select('id, display_name, language').eq('id', uid).maybeSingle(),
       supabase
         .from('memberships')
@@ -42,7 +46,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         .eq('user_id', uid)
         .maybeSingle(),
       supabase.from('superadmins').select('user_id').eq('user_id', uid).maybeSingle(),
-      supabase.from('dorm_board').select('dorm_id').eq('user_id', uid).limit(1)
+      supabase.from('dorm_board').select('dorm_id').eq('user_id', uid).limit(1),
+      supabase.from('dorm_admins').select('dorms(id, name, status)').eq('user_id', uid),
+      supabase.from('dorm_friendships').select('id').eq('status', 'accepted').limit(1)
     ])
     const prof = (p.data as Profile | null) ?? null
     setProfile(prof)
@@ -63,6 +69,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     )
     setIsSuperadmin(!!a.data)
     setIsBoard(!!b.data?.length)
+    setAdminDorms(((ad.data as unknown as { dorms: Dorm | null }[]) ?? []).map((r) => r.dorms).filter((d): d is Dorm => !!d && d.status === 'approved'))
+    setHasFriends(!!fr.data?.length)
     setReady(true)
   }, [setLang])
 
@@ -89,7 +97,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   return (
     <SessionContext.Provider
-      value={{ ready, session, profile, membership, isSuperadmin, isBoard, recovering, setRecovering, refresh }}
+      value={{ ready, session, profile, membership, isSuperadmin, isBoard, adminDorms, hasFriends, recovering, setRecovering, refresh }}
     >
       {children}
     </SessionContext.Provider>

@@ -23,7 +23,7 @@ export function errorKey(e: unknown): string {
   const msg = (e as { message?: string })?.message ?? String(e)
   const known = [
     'already_member', 'invalid_code', 'forbidden', 'last_moderator', 'my_hall_not_in_list',
-    'invalid_halls', 'Invalid login credentials', 'User already registered', 'Email not confirmed'
+    'invalid_halls', 'user_not_found', 'invalid_dorm', 'Invalid login credentials', 'User already registered', 'Email not confirmed'
   ]
   const hit = known.find((k) => msg.includes(k))
   if (hit) return 'err.' + hit

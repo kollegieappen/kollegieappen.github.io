@@ -126,7 +126,7 @@ export default function Me() {
         {error && <div className="error">{error}</div>}
 
         <button className="ghost" onClick={() => signOut()}>{t('me.logout')}</button>
-        <button className="danger" onClick={leave}>{t('me.leave')}</button>
+        {membership && <button className="danger" onClick={leave}>{t('me.leave')}</button>}
         <button className="link small muted" style={{ color: 'var(--danger)' }} onClick={deleteAccount}>{t('me.delete')}</button>
       </main>
     </>

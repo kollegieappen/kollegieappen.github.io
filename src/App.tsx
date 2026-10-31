@@ -29,14 +29,17 @@ function Icon({ name }: { name: string }) {
 
 function TabBar() {
   const { t } = useI18n()
-  const { isSuperadmin } = useSession()
+  const { isSuperadmin, adminDorms, membership } = useSession()
+  const resident = !!membership && membership.dorm.status === 'approved'
   const tabs = [
-    { to: '/', key: 'shopping' },
-    { to: '/kalender', key: 'calendar' },
-    { to: '/opslag', key: 'board' },
-    { to: '/gang', key: 'hall' },
-    { to: '/mig', key: 'me' },
-    ...(isSuperadmin ? [{ to: '/admin', key: 'admin' }] : [])
+    ...(resident ? [
+      { to: '/', key: 'shopping' },
+      { to: '/kalender', key: 'calendar' },
+      { to: '/opslag', key: 'board' },
+      { to: '/gang', key: 'hall' }
+    ] : []),
+    ...(isSuperadmin || adminDorms.length ? [{ to: '/admin', key: 'admin' }] : []),
+    { to: '/mig', key: 'me' }
   ]
   return (
     <div className="tabbar">
@@ -53,7 +56,7 @@ function TabBar() {
 }
 
 export default function App() {
-  const { ready, session, membership, isSuperadmin, recovering } = useSession()
+  const { ready, session, membership, isSuperadmin, adminDorms, recovering } = useSession()
   const { t } = useI18n()
 
   if (!ready) return <div className="center-screen muted">{t('common.loading')}</div>
@@ -63,6 +66,20 @@ export default function App() {
       <Routes>
         <Route path="*" element={<Login />} />
       </Routes>
+    )
+  }
+  // Administration uden egen gang får kun admin-siden og Mig.
+  if (!membership && adminDorms.length > 0) {
+    return (
+      <div className="app">
+        <Routes>
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/mig" element={<Me />} />
+          <Route path="/join/:code" element={<Onboarding />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+        <TabBar />
+      </div>
     )
   }
   if (!membership) {
@@ -91,7 +108,7 @@ export default function App() {
         <Route path="/opslag" element={<Board />} />
         <Route path="/gang" element={<HallPage />} />
         <Route path="/mig" element={<Me />} />
-        {isSuperadmin && <Route path="/admin" element={<Admin />} />}
+        {(isSuperadmin || adminDorms.length > 0) && <Route path="/admin" element={<Admin />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <TabBar />

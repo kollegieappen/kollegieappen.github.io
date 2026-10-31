@@ -116,7 +116,7 @@ export default function Cleaning() {
         <>
           <button className="ghost" onClick={() => setShowManage((v) => !v)}>{t('clean.manage')} {showManage ? '▴' : '▾'}</button>
           {showManage && (
-            <Manage tasks={tasks} shifts={shifts ?? []} hallId={hallId} onChange={load} setMsg={setMsg} setError={setError} />
+            <Manage tasks={tasks} shifts={shifts ?? []} memberCount={members.length} hallId={hallId} onChange={load} setMsg={setMsg} setError={setError} />
           )}
         </>
       )}
@@ -124,15 +124,23 @@ export default function Cleaning() {
   )
 }
 
-function Manage({ tasks, shifts, hallId, onChange, setMsg, setError }: {
-  tasks: Task[]; shifts: Shift[]; hallId: string; onChange: () => void
+function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError }: {
+  tasks: Task[]; shifts: Shift[]; memberCount: number; hallId: string; onChange: () => void
   setMsg: (s: string) => void; setError: (s: string) => void
 }) {
   const { t } = useI18n()
   const [editing, setEditing] = useState<Task | null>(null)
   const [formKey, setFormKey] = useState(0)
   const [genTask, setGenTask] = useState('')
-  const [weeks, setWeeks] = useState(8)
+  const [rounds, setRounds] = useState(2)
+  const task = tasks.find((x) => x.id === genTask) ?? tasks[0]
+  // Antal uger, så alle beboere får lige mange ture: (uger × dage pr. uge) skal gå op i antal beboere.
+  const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a)
+  const perWeek = task?.weekdays.length || 1
+  const n = Math.max(memberCount, 1)
+  const weeksPerRound = n / gcd(n, perWeek)
+  const roundOptions = Array.from({ length: 8 }, (_, i) => i + 1).filter((r) => r * weeksPerRound <= 52)
+  const weeks = Math.min(rounds, roundOptions.at(-1) ?? 1) * weeksPerRound
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function removeTask(task: Task) {
@@ -225,8 +233,10 @@ function Manage({ tasks, shifts, hallId, onChange, setMsg, setError }: {
               <select className="grow" value={genTask || tasks[0].id} onChange={(e) => setGenTask(e.target.value)} aria-label={t('clean.generateFor')}>
                 {tasks.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
               </select>
-              <select style={{ width: 'auto' }} value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
-                {[4, 8, 12, 26].map((n) => <option key={n} value={n}>{t('clean.weeks', { n })}</option>)}
+              <select style={{ width: 'auto' }} value={Math.min(rounds, roundOptions.at(-1) ?? 1)} onChange={(e) => setRounds(Number(e.target.value))}>
+                {roundOptions.map((r) => (
+                  <option key={r} value={r}>{t('clean.weeks', { n: r * weeksPerRound })} · {t('clean.turns', { n: (r * weeksPerRound * perWeek) / n })}</option>
+                ))}
               </select>
             </div>
             <div className="small muted">{t('clean.generateHint')}</div>
