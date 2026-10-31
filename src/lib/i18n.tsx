@@ -66,6 +66,7 @@ const da = {
 
   'cal.title': 'Kalender',
   'cal.new': 'Nyt event',
+  'cal.edit': 'Redigér event',
   'cal.what': 'Titel',
   'cal.date': 'Dato',
   'cal.start': 'Start',
@@ -199,6 +200,7 @@ const en: Record<Key, string> = {
 
   'cal.title': 'Calendar',
   'cal.new': 'New event',
+  'cal.edit': 'Edit event',
   'cal.what': 'Title',
   'cal.date': 'Date',
   'cal.start': 'Start',

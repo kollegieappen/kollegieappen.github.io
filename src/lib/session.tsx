@@ -9,6 +9,7 @@ type Ctx = {
   profile: Profile | null
   membership: Membership | null
   isSuperadmin: boolean
+  isBoard: boolean
   recovering: boolean
   setRecovering: (v: boolean) => void
   refresh: () => Promise<void>
@@ -23,23 +24,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [membership, setMembership] = useState<Membership | null>(null)
   const [isSuperadmin, setIsSuperadmin] = useState(false)
+  const [isBoard, setIsBoard] = useState(false)
   const [recovering, setRecovering] = useState(false)
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s)
     if (!s) {
-      setProfile(null); setMembership(null); setIsSuperadmin(false); setReady(true)
+      setProfile(null); setMembership(null); setIsSuperadmin(false); setIsBoard(false); setReady(true)
       return
     }
     const uid = s.user.id
-    const [p, m, a] = await Promise.all([
+    const [p, m, a, b] = await Promise.all([
       supabase.from('profiles').select('id, display_name, language').eq('id', uid).maybeSingle(),
       supabase
         .from('memberships')
         .select('hall_id, is_moderator, halls(id, name, dorm_id, dorms(id, name, status))')
         .eq('user_id', uid)
         .maybeSingle(),
-      supabase.from('superadmins').select('user_id').eq('user_id', uid).maybeSingle()
+      supabase.from('superadmins').select('user_id').eq('user_id', uid).maybeSingle(),
+      supabase.from('dorm_board').select('dorm_id').eq('user_id', uid).limit(1)
     ])
     const prof = (p.data as Profile | null) ?? null
     setProfile(prof)
@@ -59,6 +62,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         : null
     )
     setIsSuperadmin(!!a.data)
+    setIsBoard(!!b.data?.length)
     setReady(true)
   }, [setLang])
 
@@ -85,7 +89,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   return (
     <SessionContext.Provider
-      value={{ ready, session, profile, membership, isSuperadmin, recovering, setRecovering, refresh }}
+      value={{ ready, session, profile, membership, isSuperadmin, isBoard, recovering, setRecovering, refresh }}
     >
       {children}
     </SessionContext.Provider>
