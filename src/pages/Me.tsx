@@ -4,6 +4,7 @@ import { useI18n, type Lang } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TopBar } from '../ui'
 import { disablePush, enablePush, pushState, signOut, type PushState } from '../lib/push'
+import { AboutMe } from './Profile'
 
 export default function Me() {
   const { t, lang, setLang } = useI18n()
@@ -95,6 +96,8 @@ export default function Me() {
             <button type="submit" disabled={phone.trim() === savedPhone}>{t('common.save')}</button>
           </div>
         </form>
+
+        {membership && <AboutMe />}
 
         <div className="card stack">
           <strong>{t('me.notifications')}</strong>

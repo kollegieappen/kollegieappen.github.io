@@ -132,7 +132,31 @@ async function reminders() {
     }))
     await admin.from('cleaning_shifts').update({ reminded: true }).eq('id', s.id)
   }
-  return json({ date, hour, due: due.length, sent })
+  const birthdays = hour >= 8 ? await birthdayGreetings(date) : 0
+  return json({ date, hour, due: due.length, sent, birthdays })
+}
+
+/** Giv gangen besked om dagens fødselsdage (én gang pr. person pr. år). */
+async function birthdayGreetings(date: string) {
+  const [y, m, d] = date.split('-').map(Number)
+  const { data: people } = await admin
+    .from('profile_details').select('user_id, profiles(display_name)').eq('birth_month', m).eq('birth_day', d)
+  let sent = 0
+  for (const p of people ?? []) {
+    const { error } = await admin.from('birthday_log').insert({ user_id: p.user_id, year: y })
+    if (error) continue // allerede sendt i år
+    const { data: me } = await admin.from('memberships').select('hall_id').eq('user_id', p.user_id).maybeSingle()
+    if (!me) continue
+    const { data: hall } = await admin.from('memberships').select('user_id').eq('hall_id', me.hall_id).neq('user_id', p.user_id)
+    const name = (p.profiles as unknown as { display_name: string } | null)?.display_name ?? '?'
+    sent += await sendTo((hall ?? []).map((x) => x.user_id), (lang) => ({
+      title: lang === 'da' ? `🎂 ${name} har fødselsdag i dag` : `🎂 It's ${name}'s birthday today`,
+      body: lang === 'da' ? 'Husk at sige tillykke!' : 'Remember to say happy birthday!',
+      url: '/#/kalender',
+      tag: 'birthday-' + p.user_id
+    }))
+  }
+  return sent
 }
 
 Deno.serve(async (req) => {

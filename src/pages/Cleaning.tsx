@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { EditIcon, TrashIcon, useRealtime } from '../ui'
+import { dietSummary } from './Profile'
 
 type Task = {
   id: string; title: string; description: string | null; weekdays: number[]; remind_hour: number
-  emoji?: string; people_per_shift?: number; remind_days_before?: number
+  emoji?: string; people_per_shift?: number; remind_days_before?: number; signup_enabled?: boolean
 }
+type Signup = { task_id: string; date: string; user_id: string; person: { display_name: string } | null }
+type Diet = { user_id: string; tags: string[]; note: string }
 
 const EMOJIS = ['🧹', '🍝', '🗑️', '🧽', '🚿', '🧺', '♻️', '🍳', '🛒', '🌱']
 type Shift = { id: string; date: string; task_id: string; user_id: string | null; person: { display_name: string } | null }
@@ -27,6 +30,9 @@ export default function Cleaning() {
   const [members, setMembers] = useState<Member[]>([])
   const [showManage, setShowManage] = useState(false)
   const [only, setOnly] = useState('')
+  const [signups, setSignups] = useState<Signup[]>([])
+  const [diets, setDiets] = useState<Record<string, Diet>>({})
+  const [openSignup, setOpenSignup] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
@@ -34,7 +40,7 @@ export default function Cleaning() {
     const today = isoDate(new Date())
     const tasksQ = (cols: string) => supabase.from('cleaning_tasks').select(cols).eq('hall_id', hallId).order('title')
     const [tk0, sh, mb] = await Promise.all([
-      tasksQ('id, title, description, weekdays, remind_hour, emoji, people_per_shift, remind_days_before'),
+      tasksQ('id, title, description, weekdays, remind_hour, emoji, people_per_shift, remind_days_before, signup_enabled'),
       supabase.from('cleaning_shifts').select('id, date, task_id, user_id, person:profiles(display_name)')
         .eq('hall_id', hallId).gte('date', today).order('date').order('task_id').limit(400),
       supabase.from('memberships').select('user_id, profile:profiles(display_name)').eq('hall_id', hallId).order('joined_at')
@@ -44,10 +50,22 @@ export default function Cleaning() {
     setTasks((tk.data as unknown as Task[]) ?? [])
     setShifts((sh.data as unknown as Shift[]) ?? [])
     setMembers((mb.data as unknown as Member[]) ?? [])
+    const [su, di] = await Promise.all([
+      supabase.from('duty_signups').select('task_id, date, user_id, person:profiles(display_name)').gte('date', today),
+      supabase.from('diet_info').select('user_id, tags, note')
+    ])
+    setSignups((su.data as unknown as Signup[]) ?? [])
+    setDiets(Object.fromEntries(((di.data as Diet[]) ?? []).map((x) => [x.user_id, x])))
   }, [hallId])
 
   useEffect(() => { load() }, [load])
-  useRealtime(['cleaning_shifts'], load)
+  useRealtime(['cleaning_shifts', 'duty_signups'], load)
+
+  async function toggleSignup(taskId: string, date: string, joined: boolean) {
+    if (joined) await supabase.from('duty_signups').delete().eq('task_id', taskId).eq('date', date).eq('user_id', me)
+    else await supabase.from('duty_signups').insert({ task_id: taskId, date })
+    load()
+  }
 
   const taskName = (id: string) => {
     const x = tasks.find((y) => y.id === id)
@@ -105,8 +123,15 @@ export default function Cleaning() {
             </div>
           )}
           <div className="list">
-            {[...byDate.entries()].map(([date, list]) => list.map((s, i) => (
-              <div className="item" key={s.id}>
+            {[...byDate.entries()].map(([date, list]) => list.map((s, i) => {
+              const task = tasks.find((x) => x.id === s.task_id)
+              const lastOfTask = list.map((x) => x.task_id).lastIndexOf(s.task_id) === i
+              const people = signups.filter((x) => x.task_id === s.task_id && x.date === date)
+              const joined = people.some((x) => x.user_id === me)
+              const key = s.task_id + date
+              return (
+              <Fragment key={s.id}>
+              <div className="item">
                 <div className="grow">
                   {i === 0 && <div className="small muted">{dayName(date)}</div>}
                   <div>
@@ -128,7 +153,33 @@ export default function Cleaning() {
                   </select>
                 )}
               </div>
-            )))}
+              {lastOfTask && task?.signup_enabled && (
+                <div className="item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6, background: 'var(--surface-2)' }}>
+                  <div className="row">
+                    <button className="link small grow" style={{ textAlign: 'left', padding: 0 }} onClick={() => setOpenSignup(openSignup === key ? '' : key)}>
+                      🍽 {t('duty.signedUp', { n: people.length })} {openSignup === key ? '▴' : '▾'}
+                    </button>
+                    <button className={joined ? 'ghost' : ''} style={{ padding: '6px 10px', fontSize: 13 }} onClick={() => toggleSignup(s.task_id, date, joined)}>
+                      {joined ? '✓ ' + t('duty.joined') : t('duty.join')}
+                    </button>
+                  </div>
+                  {openSignup === key && (
+                    people.length === 0 ? <div className="small muted">{t('duty.nobody')}</div> : (
+                      <div className="small">
+                        {people.map((x) => (
+                          <div key={x.user_id}>
+                            {x.person?.display_name ?? '—'}
+                            {dietSummary(diets[x.user_id], t) && <span className="muted"> · {dietSummary(diets[x.user_id], t)}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+              </Fragment>
+              )
+            }))}
           </div>
         </>
       )}
@@ -303,6 +354,7 @@ function TaskForm({ task, hallId, onDone, setError }: {
   const [emoji, setEmoji] = useState(task?.emoji ?? '🧹')
   const [people, setPeople] = useState(task?.people_per_shift ?? 1)
   const [dayBefore, setDayBefore] = useState(task?.remind_days_before ?? 0)
+  const [signup, setSignup] = useState(task?.signup_enabled ?? false)
   const [busy, setBusy] = useState(false)
   const labels = t('clean.days').split(',')
 
@@ -311,7 +363,7 @@ function TaskForm({ task, hallId, onDone, setError }: {
     setBusy(true); setError('')
     const fields = {
       title: title.trim(), description: description.trim() || null, weekdays: [...days].sort(), remind_hour: hour,
-      emoji, people_per_shift: people, remind_days_before: dayBefore
+      emoji, people_per_shift: people, remind_days_before: dayBefore, signup_enabled: signup
     }
     const { error } = task
       ? await supabase.from('cleaning_tasks').update(fields).eq('id', task.id)
@@ -354,6 +406,10 @@ function TaskForm({ task, hallId, onDone, setError }: {
           ))}
         </div>
       </div>
+      <label className="row" style={{ margin: 0, gap: 8, fontWeight: 500, color: 'var(--ink)' }}>
+        <input type="checkbox" style={{ width: 'auto' }} checked={signup} onChange={(e) => setSignup(e.target.checked)} />
+        {t('duty.enableSignup')}
+      </label>
       <div className="row">
         <label htmlFor="tp" style={{ margin: 0 }}>{t('clean.people')}</label>
         <select id="tp" style={{ width: 'auto' }} value={people} onChange={(e) => setPeople(Number(e.target.value))}>

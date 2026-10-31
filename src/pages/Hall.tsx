@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { supabase, errorKey, APP_URL, type Hall } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
@@ -7,6 +7,7 @@ import Cleaning from './Cleaning'
 import SharedItems from './SharedItems'
 import Info from './Info'
 import DormSection from './DormSection'
+import { MemberProfile } from './Profile'
 
 type Member = { user_id: string; is_moderator: boolean; joined_at: string; profile: { display_name: string } | null }
 type Invite = { code: string; hall_id: string; uses: number; max_uses: number; expires_at: string }
@@ -50,6 +51,8 @@ function Members() {
   const [copied, setCopied] = useState('')
   const [error, setError] = useState('')
   const [phones, setPhones] = useState<Record<string, string>>({})
+  const [viewing, setViewing] = useState<Member | null>(null)
+  const profileDialog = useRef<HTMLDialogElement>(null)
 
   const load = useCallback(async () => {
     const [m, h, i] = await Promise.all([
@@ -106,7 +109,10 @@ function Members() {
             <div className="item" key={m.user_id} style={{ flexWrap: 'wrap' }}>
               <div className="grow">
                 <div>
-                  {m.profile?.display_name ?? '—'}
+                  <button className="link" style={{ padding: 0, color: 'var(--ink)', fontWeight: 500, textDecoration: 'underline dotted' }}
+                    onClick={() => { setViewing(m); profileDialog.current?.showModal() }}>
+                    {m.profile?.display_name ?? '—'}
+                  </button>
                   {m.user_id === me && <span className="muted"> ({t('common.you')})</span>}
                 </div>
                 {phones[m.user_id] && (
@@ -192,6 +198,14 @@ function Members() {
           </form>
         )}
         <DormSection />
+        <dialog ref={profileDialog}>
+          {viewing && (
+            <MemberProfile
+              key={viewing.user_id} userId={viewing.user_id} name={viewing.profile?.display_name ?? '—'} hall={membership!.hall.name}
+              onClose={() => { profileDialog.current?.close(); setViewing(null) }}
+            />
+          )}
+        </dialog>
     </div>
   )
 }
