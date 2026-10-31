@@ -1,18 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { HelpDialogContent } from './pages/Help'
 import { supabase } from './lib/supabase'
 import { useSession } from './lib/session'
 
-export function TopBar({ title }: { title: string }) {
+export function TopBar({ title, help }: { title: string; help?: string[] }) {
   const { membership } = useSession()
+  const dialog = useRef<HTMLDialogElement>(null)
+  const [open, setOpen] = useState(false)
   return (
     <header className="topbar">
       <h1>{title}</h1>
+      {help && (
+        <button className="help-btn" aria-label="?" onClick={() => { setOpen(true); dialog.current?.showModal() }}>?</button>
+      )}
       {membership && (
         <span className="where">
           {membership.hall.name}
           <br />
           {membership.dorm.name}
         </span>
+      )}
+      {help && (
+        <dialog ref={dialog} onClose={() => setOpen(false)}>
+          {open && <HelpDialogContent pages={help} onClose={() => dialog.current?.close()} />}
+        </dialog>
       )}
     </header>
   )

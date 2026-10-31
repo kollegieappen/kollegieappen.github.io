@@ -4,6 +4,7 @@ import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { EditIcon, TrashIcon, useRealtime } from '../ui'
 import { dietSummary } from './Profile'
+import { Tip } from './Help'
 
 type Task = {
   id: string; title: string; description: string | null; weekdays: number[]; remind_hour: number
@@ -302,7 +303,7 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
 
       {tasks.length > 0 && (
         <>
-          <div className="section-title">{t('clean.generate')}</div>
+          <div className="section-title">{t('clean.generate')} <Tip k="dutyRounds" /></div>
           <div className="card stack">
             <div className="row">
               <select className="grow" value={genTask || tasks[0].id} onChange={(e) => setGenTask(e.target.value)} aria-label={t('clean.generateFor')}>
@@ -327,7 +328,7 @@ function Manage({ tasks, shifts, memberCount, hallId, onChange, setMsg, setError
         </>
       )}
 
-      <div className="section-title">CSV</div>
+      <div className="section-title">CSV <Tip k="csv" /></div>
       <div className="card stack">
         <div className="small muted">{t('clean.csvHint')}</div>
         <div className="row">
@@ -408,10 +409,10 @@ function TaskForm({ task, hallId, onDone, setError }: {
       </div>
       <label className="row" style={{ margin: 0, gap: 8, fontWeight: 500, color: 'var(--ink)' }}>
         <input type="checkbox" style={{ width: 'auto' }} checked={signup} onChange={(e) => setSignup(e.target.checked)} />
-        {t('duty.enableSignup')}
+        {t('duty.enableSignup')} <Tip k="dutySignup" />
       </label>
       <div className="row">
-        <label htmlFor="tp" style={{ margin: 0 }}>{t('clean.people')}</label>
+        <label htmlFor="tp" style={{ margin: 0 }}>{t('clean.people')} <Tip k="dutyPeople" /></label>
         <select id="tp" style={{ width: 'auto' }} value={people} onChange={(e) => setPeople(Number(e.target.value))}>
           {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>

@@ -4,6 +4,7 @@ import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { EditIcon, TopBar, TrashIcon, relTime, useRealtime } from '../ui'
 import Mailbox from './Mailbox'
+import { Tip } from './Help'
 
 type Tab = 'hall' | 'mail' | 'dorm' | 'friends'
 type Kind = 'post' | 'sublet' | 'announcement'
@@ -33,7 +34,7 @@ export default function Board() {
 
   return (
     <>
-      <TopBar title={t('board.title')} />
+      <TopBar title={t('board.title')} help={['board', 'mailbox']} />
       <main className="stack">
         <div className="seg">
           {tabs.map((x) => (
@@ -160,6 +161,7 @@ function Composer({ tab, onPosted }: { tab: Exclude<Tab, 'mail'>; onPosted: () =
           {kinds.map((k) => (
             <button type="button" key={k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)} style={{ fontSize: 13 }}>{t(kindLabel[k])}</button>
           ))}
+          <Tip k="postKind" />
         </div>
       )}
       <textarea
@@ -182,10 +184,12 @@ function Composer({ tab, onPosted }: { tab: Exclude<Tab, 'mail'>; onPosted: () =
         </div>
       )}
       {error && <div className="error">{error}</div>}
-      <div className="row" style={{ justifyContent: 'space-between' }}>
+      <div className="row">
         <button type="button" className="link small" onClick={() => setPoll(poll ? null : ['', ''])}>
           {poll ? t('board.removePoll') : '📊 ' + t('board.addPoll')}
         </button>
+        {!poll && <Tip k="poll" />}
+        <span className="grow" />
         <button type="submit" disabled={busy || !body.trim() || (!!poll && poll.filter((x) => x.trim()).length < 2)}>
           {t('board.post')}
         </button>

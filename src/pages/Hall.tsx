@@ -8,6 +8,7 @@ import SharedItems from './SharedItems'
 import Info from './Info'
 import DormSection from './DormSection'
 import { MemberProfile } from './Profile'
+import { Tip } from './Help'
 
 type Member = { user_id: string; is_moderator: boolean; joined_at: string; profile: { display_name: string } | null }
 type Invite = { code: string; hall_id: string; uses: number; max_uses: number; expires_at: string }
@@ -21,7 +22,7 @@ export default function HallPage() {
   const pick = (v: typeof tab) => { setTab(v); try { sessionStorage.setItem('ka.hallTab', v) } catch { /* ignore */ } }
   return (
     <>
-      <TopBar title={membership!.hall.name} />
+      <TopBar title={membership!.hall.name} help={tab === 'cleaning' ? ['duties'] : tab === 'shared' ? ['shared'] : tab === 'info' ? ['info'] : ['residents']} />
       <main className="stack">
         <div className="seg" style={{ fontSize: 13 }}>
           <button className={tab === 'cleaning' ? 'on' : ''} onClick={() => pick('cleaning')}>{t('hall.tabCleaning')}</button>
@@ -103,7 +104,7 @@ function Members() {
     <div className="stack">
         {error && <div className="error">{error}</div>}
 
-        <div className="section-title">{t('hall.members')} · {members.length}</div>
+        <div className="section-title">{t('hall.members')} · {members.length} <Tip k="moderator" /></div>
         <div className="list">
           {members.map((m) => (
             <div className="item" key={m.user_id} style={{ flexWrap: 'wrap' }}>
@@ -146,7 +147,7 @@ function Members() {
 
         {isMod && (
           <>
-            <div className="section-title">{t('hall.invites')}</div>
+            <div className="section-title">{t('hall.invites')} <Tip k="invites" /></div>
             <div className="card stack">
               <div className="row">
                 <select className="grow" value={inviteHall} onChange={(e) => setInviteHall(e.target.value)} aria-label={t('hall.inviteFor')}>

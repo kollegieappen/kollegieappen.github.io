@@ -3,6 +3,7 @@ import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TrashIcon, relTime, useRealtime } from '../ui'
+import { Tip } from './Help'
 
 type Item = {
   id: string; title: string; description: string | null; owner_id: string | null; created_by: string | null
@@ -59,6 +60,7 @@ export default function SharedItems() {
         <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('shared.desc')} maxLength={1000} />
         <div className="row">
           <span className="small muted" style={{ whiteSpace: 'nowrap' }}>{t('shared.owner')}</span>
+          <Tip k="sharedOwner" />
           <div className="seg grow">
             <button type="button" className={!mine ? 'on' : ''} onClick={() => setMine(false)}>{t('shared.common')}</button>
             <button type="button" className={mine ? 'on' : ''} onClick={() => setMine(true)}>{t('shared.mine')}</button>

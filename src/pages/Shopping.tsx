@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TopBar, useRealtime } from '../ui'
+import { Tip } from './Help'
 
 type Item = { id: string; text: string; done: boolean; created_at: string }
 
@@ -63,7 +64,7 @@ export default function Shopping() {
 
   return (
     <>
-      <TopBar title={t('shop.title')} />
+      <TopBar title={t('shop.title')} help={['shopping']} />
       <main className="stack">
         <form className="row" onSubmit={add}>
           <input className="grow" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('shop.placeholder')} maxLength={200} enterKeyHint="done" />
@@ -81,7 +82,10 @@ export default function Shopping() {
                 <div className="list">
                   {open.map((i) => <Row key={i.id} item={i} onToggle={toggle} />)}
                 </div>
-                <button className="ghost" onClick={notify} disabled={sending}>🔔 {t('shop.notify')}</button>
+                <div className="row">
+                  <button className="ghost grow" onClick={notify} disabled={sending}>🔔 {t('shop.notify')}</button>
+                  <Tip k="notify" />
+                </div>
               </>
             )}
             {note && <div className="notice">{note}</div>}

@@ -119,6 +119,7 @@ export default function Onboarding() {
         )}
 
         {isSuperadmin && <Link to="/admin" className="small" style={{ textAlign: 'center' }}>{t('nav.admin')}</Link>}
+        <Link to="/hjaelp" className="small" style={{ textAlign: 'center' }}>❓ {t('help.title')}</Link>
         <button className="link small" onClick={() => supabase.auth.signOut()}>{t('me.logout')}</button>
       </main>
     </div>

@@ -3,6 +3,7 @@ import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TrashIcon } from '../ui'
+import { Tip } from './Help'
 
 type Person = { user_id: string; name: string; hall: string }
 type Friendship = { id: string; from_dorm: string; to_dorm: string; status: 'pending' | 'accepted' }
@@ -54,7 +55,7 @@ export default function DormSection() {
 
   return (
     <>
-      <div className="section-title">{t('dorm.board')} · {membership!.dorm.name}</div>
+      <div className="section-title">{t('dorm.board')} · {membership!.dorm.name} <Tip k="board" /></div>
       {error && <div className="error">{error}</div>}
       <div className="list">
         {board.length === 0 && <div className="item muted small">{t('dorm.boardEmpty')}</div>}
@@ -83,7 +84,7 @@ export default function DormSection() {
         </div>
       )}
 
-      <div className="section-title">{t('dorm.friends')}</div>
+      <div className="section-title">{t('dorm.friends')} <Tip k="friends" /></div>
       <div className="list">
         {friends.length === 0 && <div className="item muted small">{t('dorm.friendsEmpty')}</div>}
         {friends.map((f) => {

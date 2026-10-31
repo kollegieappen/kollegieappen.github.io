@@ -3,6 +3,7 @@ import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { EditIcon, TopBar, TrashIcon, relTime, useRealtime } from '../ui'
+import { Tip } from './Help'
 
 type Scope = 'hall' | 'dorm' | 'friends'
 type Ev = {
@@ -156,7 +157,7 @@ export default function Calendar() {
 
   return (
     <>
-      <TopBar title={t('cal.title')} />
+      <TopBar title={t('cal.title')} help={['calendar']} />
       <main className="stack">
         <div className="row">
           <div className="seg grow">
@@ -166,6 +167,7 @@ export default function Calendar() {
               </button>
             ))}
           </div>
+          <Tip k="calView" />
           <div className="seg" style={{ flex: 'none' }}>
             <button className={view === 'list' ? 'on' : ''} onClick={() => pickView('list')} aria-label={t('cal.list')}>☰</button>
             <button className={view === 'month' ? 'on' : ''} onClick={() => pickView('month')} aria-label={t('cal.month')}>▦</button>
@@ -283,6 +285,7 @@ function EventCard({ e, canManage, reactions, commentCount, onEdit, onDelete, on
         <button className="ghost" style={{ ...pill(showComments), marginLeft: 'auto' }} onClick={() => setShowComments((v) => !v)}>
           💬 {commentCount}
         </button>
+        <Tip k="reactions" />
       </div>
       {showComments && <Comments eventId={e.id} canModerate={canManage} onChange={onChange} />}
     </div>
@@ -408,7 +411,7 @@ function EventForm({ event, defaultDate, onDone, onCancel }: { event: Ev | null;
       </div>
       {!event && (
         <div>
-          <label>{t('cal.for')}</label>
+          <label>{t('cal.for')} <Tip k="eventScope" /></label>
           <div className="seg">
             <button type="button" className={scope === 'hall' ? 'on' : ''} onClick={() => setScope('hall')}>{membership!.hall.name}</button>
             <button type="button" className={scope === 'dorm' ? 'on' : ''} onClick={() => setScope('dorm')}>{membership!.dorm.name}</button>

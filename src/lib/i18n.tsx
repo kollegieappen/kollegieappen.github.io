@@ -266,6 +266,16 @@ const da = {
   'welcome.start': 'Kom i gang',
   'welcome.again': 'Vis velkomstguiden igen',
 
+  'help.title': 'Hjælp og FAQ',
+  'help.search': 'Søg, fx "bestyrelse" eller "notifikationer"',
+  'help.faq': 'Ofte stillede spørgsmål',
+  'help.roles': 'Roller',
+  'help.screens': 'Skærmene',
+  'help.howRole': 'Sådan får man rollen:',
+  'help.noResults': 'Ingen resultater. Prøv et andet ord.',
+  'help.all': 'Al hjælp og FAQ',
+  'help.meHint': 'Søg i spørgsmål, roller og vejledninger',
+
   'cal.title': 'Kalender',
   'cal.new': 'Nyt event',
   'cal.edit': 'Redigér event',
@@ -604,6 +614,16 @@ const en: Record<Key, string> = {
   'welcome.aboutGo': 'Go to About me',
   'welcome.start': 'Get started',
   'welcome.again': 'Show the welcome guide again',
+
+  'help.title': 'Help and FAQ',
+  'help.search': 'Search, e.g. "board" or "notifications"',
+  'help.faq': 'Frequently asked questions',
+  'help.roles': 'Roles',
+  'help.screens': 'Screens',
+  'help.howRole': 'How to get the role:',
+  'help.noResults': 'No results. Try another word.',
+  'help.all': 'All help and FAQ',
+  'help.meHint': 'Search questions, roles and guides',
 
   'cal.title': 'Calendar',
   'cal.new': 'New event',

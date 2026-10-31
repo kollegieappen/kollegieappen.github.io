@@ -5,6 +5,8 @@ import { useSession } from '../lib/session'
 import { TopBar } from '../ui'
 import { disablePush, enablePush, pushState, signOut, type PushState } from '../lib/push'
 import { AboutMe } from './Profile'
+import { Link } from 'react-router-dom'
+import { Tip } from './Help'
 
 export default function Me() {
   const { t, lang, setLang } = useI18n()
@@ -71,7 +73,7 @@ export default function Me() {
 
   return (
     <>
-      <TopBar title={t('me.title')} />
+      <TopBar title={t('me.title')} help={['me']} />
       <main className="stack">
         <form className="card stack" onSubmit={saveName}>
           <div>
@@ -88,7 +90,7 @@ export default function Me() {
 
         <form className="card stack" onSubmit={savePhone}>
           <div>
-            <label htmlFor="ph">{t('me.phone')}</label>
+            <label htmlFor="ph">{t('me.phone')} <Tip k="phone" /></label>
             <input id="ph" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} autoComplete="tel" />
             <div className="muted small" style={{ marginTop: 4 }}>{t('me.phoneHint')}</div>
           </div>
@@ -128,6 +130,12 @@ export default function Me() {
         </div>
 
         {error && <div className="error">{error}</div>}
+
+        <Link to="/hjaelp" className="card row" style={{ textDecoration: 'none', color: 'var(--ink)' }}>
+          <span style={{ fontSize: 20 }}>❓</span>
+          <span className="grow"><strong>{t('help.title')}</strong><br /><span className="small muted">{t('help.meHint')}</span></span>
+          <span className="muted">›</span>
+        </Link>
 
         <button className="ghost" onClick={() => signOut()}>{t('me.logout')}</button>
         {membership && <button className="danger" onClick={leave}>{t('me.leave')}</button>}

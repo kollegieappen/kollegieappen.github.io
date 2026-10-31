@@ -10,6 +10,7 @@ import HallPage from './pages/Hall'
 import Me from './pages/Me'
 import Admin from './pages/Admin'
 import Welcome, { hasSeenWelcome } from './pages/Welcome'
+import HelpCenter from './pages/Help'
 import { useState } from 'react'
 
 const icons: Record<string, string> = {
@@ -78,6 +79,7 @@ export default function App() {
         <Routes>
           <Route path="/admin" element={<Admin />} />
           <Route path="/mig" element={<Me />} />
+          <Route path="/hjaelp" element={<HelpCenter />} />
           <Route path="/join/:code" element={<Onboarding />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
@@ -90,6 +92,7 @@ export default function App() {
       <Routes>
         {isSuperadmin && <Route path="/admin" element={<Admin standalone />} />}
         <Route path="/join/:code" element={<Onboarding />} />
+        <Route path="/hjaelp" element={<div className="app"><HelpCenter /></div>} />
         <Route path="*" element={<Onboarding />} />
       </Routes>
     )
@@ -115,6 +118,7 @@ export default function App() {
         <Route path="/opslag" element={<Board />} />
         <Route path="/gang" element={<HallPage />} />
         <Route path="/mig" element={<Me />} />
+        <Route path="/hjaelp" element={<HelpCenter />} />
         {(isSuperadmin || adminDorms.length > 0) && <Route path="/admin" element={<Admin />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

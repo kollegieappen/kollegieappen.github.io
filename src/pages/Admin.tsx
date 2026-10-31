@@ -4,6 +4,7 @@ import { supabase, errorKey, APP_URL, type Dorm } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TopBar, TrashIcon, relTime } from '../ui'
+import { Tip } from './Help'
 
 type PendingDorm = {
   id: string; name: string; address: string | null; created_at: string
@@ -17,7 +18,7 @@ export default function Admin({ standalone = false }: { standalone?: boolean }) 
 
   return (
     <div className={standalone ? 'app' : undefined}>
-      <TopBar title={t('nav.admin')} />
+      <TopBar title={t('nav.admin')} help={['admin']} />
       <main className={'stack' + (standalone ? ' plain' : '')}>
         {standalone && <Link to="/">←</Link>}
         {adminDorms.length > 0 && (
@@ -219,7 +220,7 @@ function AdminDorm({ dorm }: { dorm: Dorm }) {
             <div className="post">{messages[r.message_id] ?? '—'}</div>
             {revealed[r.id] && <div className="notice">{revealed[r.id]}</div>}
             <div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              {!revealed[r.id] && <button className="ghost" onClick={() => reveal(r)}>{t('adm.reveal')}</button>}
+              {!revealed[r.id] && <><Tip k="reveal" /><button className="ghost" onClick={() => reveal(r)}>{t('adm.reveal')}</button></>}
               <button className="danger" onClick={() => confirm(t('common.confirm')) && run(() => supabase.from('anon_messages').delete().eq('id', r.message_id))}>
                 {t('mail.deleteMsg')}
               </button>

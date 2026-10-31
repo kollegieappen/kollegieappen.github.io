@@ -3,6 +3,7 @@ import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { EditIcon, TrashIcon } from '../ui'
+import { Tip } from './Help'
 
 type Item = { id: string; hall_id: string | null; dorm_id: string | null; question: string; answer: string; updated_by: string | null }
 
@@ -40,7 +41,7 @@ export default function Info() {
     return (
       <>
         <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
-          <span className="section-title" style={{ margin: '0 4px' }}>{t(scope === 'hall' ? 'info.hall' : 'info.dorm')}</span>
+          <span className="section-title" style={{ margin: '0 4px' }}>{t(scope === 'hall' ? 'info.hall' : 'info.dorm')} <Tip k="infoScope" /></span>
           {(scope === 'hall' || canDorm) && adding !== scope && (
             <button className="link small" onClick={() => setAdding(scope)}>+ {t('info.add')}</button>
           )}
