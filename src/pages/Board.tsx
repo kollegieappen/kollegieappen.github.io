@@ -2,11 +2,19 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase, errorKey, type Scope } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
-import { TopBar, TrashIcon, relTime, useRealtime } from '../ui'
+import { EditIcon, TopBar, TrashIcon, relTime, useRealtime } from '../ui'
 
+type HallRef = { hall: { name: string } | null }
 type Post = {
-  id: string; body: string; created_at: string; created_by: string | null
-  hall_id: string | null; author: { display_name: string } | null
+  id: string; body: string; created_at: string; edited_at?: string | null; created_by: string | null
+  hall_id: string | null
+  author: { display_name: string; memberships?: HallRef | HallRef[] | null } | null
+}
+
+// Afsenderens nuværende gang (PostgREST kan returnere objekt eller liste).
+const authorHall = (p: Post) => {
+  const m = p.author?.memberships
+  return (Array.isArray(m) ? m[0] : m)?.hall?.name ?? null
 }
 
 export default function Board() {
@@ -17,15 +25,19 @@ export default function Board() {
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editBody, setEditBody] = useState('')
 
   const load = useCallback(async () => {
-    let q = supabase
-      .from('posts')
-      .select('id, body, created_at, created_by, hall_id, author:profiles(display_name)')
-      .order('created_at', { ascending: false })
-      .limit(100)
-    q = scope === 'hall' ? q.eq('hall_id', membership!.hall_id) : q.eq('dorm_id', membership!.dorm.id)
-    const { data } = await q
+    const query = (cols: string) => {
+      const q = supabase.from('posts').select(cols).order('created_at', { ascending: false }).limit(100)
+      return scope === 'hall' ? q.eq('hall_id', membership!.hall_id) : q.eq('dorm_id', membership!.dorm.id)
+    }
+    let { data, error } = await query(
+      'id, body, created_at, edited_at, created_by, hall_id, author:profiles(display_name, memberships(hall:halls(name)))'
+    )
+    // Fallback, hvis 0003-opsætningen endnu ikke er kørt i databasen.
+    if (error) ({ data } = await query('id, body, created_at, created_by, hall_id, author:profiles(display_name)'))
     setPosts((data as unknown as Post[]) ?? [])
   }, [scope, membership])
 
@@ -44,6 +56,14 @@ export default function Board() {
     setBusy(false)
     if (error) return setError(t(errorKey(error)))
     setBody('')
+    load()
+  }
+
+  async function saveEdit(p: Post) {
+    if (!editBody.trim()) return
+    const { error } = await supabase.from('posts').update({ body: editBody.trim() }).eq('id', p.id)
+    if (error) return setError(t(errorKey(error)))
+    setEditId(null)
     load()
   }
 
@@ -83,14 +103,31 @@ export default function Board() {
               <article className="card" key={p.id}>
                 <div className="post-meta">
                   <strong style={{ color: 'var(--ink)' }}>{p.author?.display_name ?? '—'}</strong>
-                  <span>· {relTime(p.created_at, locale)}</span>
+                  {authorHall(p) && <span className="badge">{authorHall(p)}</span>}
+                  <span>· {relTime(p.created_at, locale)}{p.edited_at && ` · ${t('board.edited')}`}</span>
+                  <span style={{ marginLeft: 'auto' }} />
+                  {mine && editId !== p.id && (
+                    <button className="icon" onClick={() => { setEditId(p.id); setEditBody(p.body) }} aria-label={t('board.edit')}>
+                      <EditIcon />
+                    </button>
+                  )}
                   {canDelete && (
-                    <button className="icon" style={{ marginLeft: 'auto' }} onClick={() => remove(p)} aria-label={t('common.delete')}>
+                    <button className="icon" onClick={() => remove(p)} aria-label={t('common.delete')}>
                       <TrashIcon />
                     </button>
                   )}
                 </div>
-                <div className="post">{p.body}</div>
+                {editId === p.id ? (
+                  <div className="stack">
+                    <textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} maxLength={4000} autoFocus />
+                    <div className="row" style={{ justifyContent: 'flex-end' }}>
+                      <button className="ghost" onClick={() => setEditId(null)}>{t('common.cancel')}</button>
+                      <button onClick={() => saveEdit(p)} disabled={!editBody.trim()}>{t('common.save')}</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="post">{p.body}</div>
+                )}
               </article>
             )
           })

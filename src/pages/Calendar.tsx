@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { supabase, errorKey, type Scope } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
-import { TopBar, TrashIcon, useRealtime } from '../ui'
+import { EditIcon, TopBar, TrashIcon, useRealtime } from '../ui'
 
 type Ev = {
   id: string; hall_id: string | null; dorm_id: string | null; title: string
@@ -132,14 +132,6 @@ export default function Calendar() {
         />
       </dialog>
     </>
-  )
-}
-
-function EditIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" />
-    </svg>
   )
 }
 
