@@ -253,6 +253,12 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Brugere, der oprettede sig, før denne fil blev kørt, får også en profil.
+insert into public.profiles (id, display_name)
+select id, left(coalesce(nullif(trim(raw_user_meta_data ->> 'display_name'), ''), split_part(email, '@', 1)), 60)
+from auth.users
+on conflict (id) do nothing;
+
 -- ─────────────────────────────────────────────────────────────
 -- Funktioner (RPC), som appen kalder
 -- ─────────────────────────────────────────────────────────────
