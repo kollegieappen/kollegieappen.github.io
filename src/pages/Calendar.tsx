@@ -23,7 +23,7 @@ const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.get
 
 export default function Calendar() {
   const { t, locale } = useI18n()
-  const { membership, session, isSuperadmin, isBoard, hasFriends } = useSession()
+  const { membership, session, isSuperadmin, isBoard, hasFriends, friendDorms } = useSession()
   const [view, setView] = useState<'list' | 'month'>(() => {
     try { return sessionStorage.getItem('ka.calView') === 'month' ? 'month' : 'list' } catch { return 'list' }
   })
@@ -50,7 +50,7 @@ export default function Calendar() {
     let q = supabase
       .from('events')
       .select('id, hall_id, dorm_id, title, description, location, starts_at, ends_at, created_by, is_friends, author:profiles!events_created_by_fkey(display_name), dorm:dorms(name)')
-      .or(`hall_id.eq.${membership!.hall_id},dorm_id.eq.${membership!.dorm.id},is_friends.eq.true`)
+      .or(`hall_id.eq.${membership!.hall_id},dorm_id.eq.${membership!.dorm.id},and(is_friends.eq.true,dorm_id.in.(${[membership!.dorm.id, ...friendDorms].join(',')}))`)
       .gte('starts_at', fromKey)
       .order('starts_at')
       .limit(300)
@@ -70,7 +70,7 @@ export default function Calendar() {
       for (const x of (c.data as { event_id: string }[]) ?? []) counts[x.event_id] = (counts[x.event_id] ?? 0) + 1
       setCommentCounts(counts)
     }
-  }, [membership, fromKey, toKey])
+  }, [membership, friendDorms, fromKey, toKey])
 
   useEffect(() => { load() }, [load])
   useRealtime(['events', 'event_reactions', 'event_comments'], load)

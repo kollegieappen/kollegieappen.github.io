@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TrashIcon } from '../ui'
 import { Tip } from './Help'
+import { geocode } from '../lib/geo'
+import type { MapDorm } from './DormMap'
+
+const DormMap = lazy(() => import('./DormMap'))
 
 type Person = { user_id: string; name: string; hall: string }
 type Friendship = { id: string; from_dorm: string; to_dorm: string; status: 'pending' | 'accepted' }
-type DormRow = { id: string; name: string; address: string | null; hall_count?: number; resident_count?: number }
+type DormRow = { id: string; name: string; address: string | null; hall_count?: number; resident_count?: number; lat?: number | null; lng?: number | null }
 
 /** Bestyrelse og venskabskollegier (vises under Gangen → Beboere). */
 export default function DormSection() {
@@ -24,10 +28,12 @@ export default function DormSection() {
   const [search, setSearch] = useState('')
   const [editAddr, setEditAddr] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [friendView, setFriendView] = useState<'list' | 'map'>('list')
+  const [findView, setFindView] = useState<'list' | 'map'>('list')
 
   const load = useCallback(async () => {
     const [m, b, f, d] = await Promise.all([
-      supabase.from('memberships').select('user_id, profile:profiles(display_name), hall:halls(name)'),
+      supabase.from('memberships').select('user_id, profile:profiles(display_name), hall:halls!inner(name, dorm_id)').eq('hall.dorm_id', dormId),
       supabase.from('dorm_board').select('user_id').eq('dorm_id', dormId),
       supabase.from('dorm_friendships').select('id, from_dorm, to_dorm, status'),
       supabase.rpc('approved_dorms')
@@ -36,7 +42,7 @@ export default function DormSection() {
     setPeople(((m.data as unknown as Row[]) ?? []).map((r) => ({ user_id: r.user_id, name: r.profile?.display_name ?? '—', hall: r.hall?.name ?? '' }))
       .sort((a, b) => a.name.localeCompare(b.name)))
     setBoard(((b.data as { user_id: string }[]) ?? []).map((r) => r.user_id))
-    setFriends((f.data as Friendship[]) ?? [])
+    setFriends(((f.data as Friendship[]) ?? []).filter((x) => x.from_dorm === dormId || x.to_dorm === dormId))
     setDorms((d.data as DormRow[]) ?? [])
   }, [dormId])
 
@@ -95,15 +101,35 @@ export default function DormSection() {
           )}
         </div>
       ) : (
-        <form className="row" onSubmit={(e) => { e.preventDefault(); run(() => supabase.rpc('set_dorm_address', { p_dorm: dormId, p_address: editAddr })); setEditAddr(null) }}>
+        <form className="row" onSubmit={async (e) => {
+          e.preventDefault()
+          const addr = editAddr
+          setEditAddr(null)
+          const c = await geocode(addr)
+          run(() => supabase.rpc('set_dorm_address', { p_dorm: dormId, p_address: addr, p_lat: c?.lat ?? null, p_lng: c?.lng ?? null }))
+        }}>
           <input className="grow" value={editAddr} onChange={(e) => setEditAddr(e.target.value)} maxLength={160} placeholder={t('dorm.addressPh')} autoFocus />
           <button type="button" className="ghost" onClick={() => setEditAddr(null)}>{t('common.cancel')}</button>
           <button type="submit">{t('common.save')}</button>
         </form>
       )}
 
-      <div className="section-title">{t('dorm.friends')} <Tip k="friends" /></div>
-      <div className="list">
+      <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
+        <span className="section-title" style={{ margin: '0 4px' }}>{t('dorm.friends')} <Tip k="friends" /></span>
+        <ViewToggle value={friendView} onChange={setFriendView} />
+      </div>
+      {friendView === 'map' && (
+        <Suspense fallback={<div className="empty">{t('common.loading')}</div>}>
+          <DormMap dorms={[
+            ...dorms.filter((d) => d.id === dormId).map((d) => ({ ...d, kind: 'me' as const })),
+            ...friends.map((f) => {
+              const d = dorms.find((x) => x.id === other(f))
+              return d ? { ...d, kind: (f.status === 'accepted' ? 'friend' : 'pending') as MapDorm['kind'] } : null
+            }).filter((x): x is MapDorm => !!x)
+          ]} />
+        </Suspense>
+      )}
+      <div className="list" style={friendView === 'map' ? { display: 'none' } : undefined}>
         {friends.length === 0 && <div className="item muted small">{t('dorm.friendsEmpty')}</div>}
         {friends.map((f) => {
           const incoming = f.status === 'pending' && f.to_dorm === dormId
@@ -145,8 +171,26 @@ export default function DormSection() {
               <strong className="grow">{t('dorm.findFriend')}</strong>
               <button className="link small" onClick={() => { setFinding(false); setSearch('') }}>{t('prof.close')}</button>
             </div>
-            <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('dorm.searchPh')} autoFocus />
-            {list.length === 0 ? (
+            <div className="row">
+              <input className="grow" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('dorm.searchPh')} autoFocus />
+              <ViewToggle value={findView} onChange={setFindView} />
+            </div>
+            {findView === 'map' && (
+              <Suspense fallback={<div className="empty">{t('common.loading')}</div>}>
+                <DormMap
+                  dorms={[
+                    ...dorms.filter((d) => d.id === dormId).map((d) => ({ ...d, kind: 'me' as const })),
+                    ...list.map((d) => ({ ...d, kind: 'candidate' as const }))
+                  ]}
+                  renderSelected={(d) => d.kind === 'candidate' && (
+                    <button style={{ alignSelf: 'flex-start' }} onClick={() => { run(() => supabase.rpc('request_friendship', { p_to: d.id })); setFinding(false); setSearch('') }}>
+                      {t('dorm.requestFriend')}
+                    </button>
+                  )}
+                />
+              </Suspense>
+            )}
+            {findView === 'map' ? null : list.length === 0 ? (
               <div className="muted small">{t('dorm.noDorms')}</div>
             ) : (
               <div className="stack" style={{ gap: 8, maxHeight: 360, overflowY: 'auto' }}>
@@ -172,5 +216,15 @@ export default function DormSection() {
         )
       })()}
     </>
+  )
+}
+
+function ViewToggle({ value, onChange }: { value: 'list' | 'map'; onChange: (v: 'list' | 'map') => void }) {
+  const { t } = useI18n()
+  return (
+    <div className="seg" style={{ flex: 'none' }}>
+      <button type="button" className={value === 'list' ? 'on' : ''} onClick={() => onChange('list')}>{t('map.list')}</button>
+      <button type="button" className={value === 'map' ? 'on' : ''} onClick={() => onChange('map')}>{t('map.map')}</button>
+    </div>
   )
 }

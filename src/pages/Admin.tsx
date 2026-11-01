@@ -77,7 +77,11 @@ function SuperAdmin() {
   const { t, locale } = useI18n()
   const { refresh } = useSession()
   const [rows, setRows] = useState<PendingDorm[] | null>(null)
-  const [dorms, setDorms] = useState<{ id: string; name: string }[]>([])
+  type DormRow = { id: string; name: string; address: string | null; hall_count: number; resident_count: number; is_test: boolean; i_am_admin: boolean }
+  const [dorms, setDorms] = useState<DormRow[]>([])
+  const [q, setQ] = useState('')
+  const [showTest, setShowTest] = useState(false)
+  const [openDorm, setOpenDorm] = useState<string | null>(null)
   const [admins, setAdmins] = useState<{ dorm_id: string; user_id: string; profile: { display_name: string } | null }[]>([])
   const [emails, setEmails] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -90,11 +94,24 @@ function SuperAdmin() {
     ])
     if (p.error) setError(t(errorKey(p.error)))
     setRows((p.data as PendingDorm[]) ?? [])
-    setDorms((d.data as { id: string; name: string }[]) ?? [])
+    setDorms((d.data as DormRow[]) ?? [])
     setAdmins((a.data as unknown as typeof admins) ?? [])
   }, [t])
 
   useEffect(() => { load() }, [load])
+
+  async function run(fn: () => PromiseLike<{ error: unknown }>) {
+    setError('')
+    const { error } = await fn()
+    if (error) setError(t(errorKey(error)))
+    await load()
+    refresh()
+  }
+
+  const needle = q.trim().toLowerCase()
+  const shown = dorms
+    .filter((d) => showTest || !d.is_test)
+    .filter((d) => !needle || d.name.toLowerCase().includes(needle) || (d.address ?? '').toLowerCase().includes(needle))
 
   async function decide(id: string, approve: boolean) {
     if (!approve && !confirm(t('common.confirm'))) return
@@ -147,26 +164,64 @@ function SuperAdmin() {
         ))
       )}
 
+      <FeatureRequestsAdmin />
+
       <div className="section-title">{t('adm.dorms')}</div>
-      {dorms.map((d) => {
+      <div className="row">
+        <input className="grow" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('dorm.searchPh')} />
+      </div>
+      <label className="row small" style={{ margin: 0, gap: 6, fontWeight: 500, color: 'var(--ink)' }}>
+        <input type="checkbox" style={{ width: 'auto' }} checked={showTest} onChange={(e) => setShowTest(e.target.checked)} />
+        {t('adm.showTest')}
+      </label>
+      {shown.length === 0 && <div className="muted small" style={{ padding: '0 4px' }}>{t('dorm.noDorms')}</div>}
+      {shown.map((d) => {
         const list = admins.filter((a) => a.dorm_id === d.id)
+        const open = openDorm === d.id
         return (
-          <div className="card stack" key={d.id}>
-            <strong>{d.name}</strong>
-            {list.length === 0 && <div className="muted small">{t('adm.noAdmins')}</div>}
-            {list.map((a) => (
-              <div className="row" key={a.user_id}>
-                <span className="grow">{a.profile?.display_name ?? '—'}</span>
-                <button className="icon" aria-label={t('common.delete')} onClick={() => removeAdmin(d.id, a.user_id)}><TrashIcon /></button>
+          <div className="card stack" key={d.id} style={{ gap: 8 }}>
+            <div className="row" style={{ alignItems: 'flex-start' }}>
+              <div className="grow">
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <strong>{d.name}</strong>
+                  {d.is_test && <span className="badge">🧪 {t('adm.test')}</span>}
+                  {d.i_am_admin && <span className="badge dorm">{t('adm.youAdmin')}</span>}
+                </div>
+                <div className="small muted">{d.address ? `📍 ${d.address}` : t('dorm.noAddress')}</div>
+                <div className="small muted">{t('dorm.size', { halls: d.hall_count, residents: d.resident_count })}</div>
               </div>
-            ))}
-            <form className="row" onSubmit={(e) => addAdmin(e, d.id)}>
-              <input
-                className="grow" type="email" placeholder={t('adm.addAdmin')} value={emails[d.id] ?? ''}
-                onChange={(e) => setEmails((x) => ({ ...x, [d.id]: e.target.value }))}
-              />
-              <button type="submit" className="ghost" disabled={!emails[d.id]}>{t('common.add')}</button>
-            </form>
+              <button className={d.i_am_admin ? 'ghost' : ''} onClick={() => run(() => supabase.rpc('admin_self', { p_dorm: d.id, p_value: !d.i_am_admin }))}>
+                {t(d.i_am_admin ? 'adm.stopAdmin' : 'adm.becomeAdmin')}
+              </button>
+            </div>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <label className="row small" style={{ margin: 0, gap: 6, fontWeight: 500, color: 'var(--ink)' }}>
+                <input type="checkbox" style={{ width: 'auto' }} checked={d.is_test}
+                  onChange={() => run(() => supabase.rpc('set_dorm_test', { p_dorm: d.id, p_value: !d.is_test }))} />
+                {t('adm.testFlag')}
+              </label>
+              <button className="link small" onClick={() => setOpenDorm(open ? null : d.id)}>
+                {t('adm.admins')} ({list.length}) {open ? '▴' : '▾'}
+              </button>
+            </div>
+            {open && (
+              <div className="stack" style={{ gap: 6, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+                {list.length === 0 && <div className="muted small">{t('adm.noAdmins')}</div>}
+                {list.map((a) => (
+                  <div className="row" key={a.user_id}>
+                    <span className="grow">{a.profile?.display_name ?? '—'}</span>
+                    <button className="icon" aria-label={t('common.delete')} onClick={() => removeAdmin(d.id, a.user_id)}><TrashIcon /></button>
+                  </div>
+                ))}
+                <form className="row" onSubmit={(e) => addAdmin(e, d.id)}>
+                  <input
+                    className="grow" type="email" placeholder={t('adm.addAdmin')} value={emails[d.id] ?? ''}
+                    onChange={(e) => setEmails((x) => ({ ...x, [d.id]: e.target.value }))}
+                  />
+                  <button type="submit" className="ghost" disabled={!emails[d.id]}>{t('common.add')}</button>
+                </form>
+              </div>
+            )}
           </div>
         )
       })}
@@ -314,6 +369,72 @@ function AdminDorm({ dorm }: { dorm: Dorm }) {
         <input className="grow" value={newHall} onChange={(e) => setNewHall(e.target.value)} placeholder={t('hall.newHallName')} maxLength={60} />
         <button type="submit" className="ghost" disabled={!newHall.trim()}>{t('adm.newHall')}</button>
       </form>
+    </>
+  )
+}
+
+type FeatureRequest = {
+  id: string; title: string; description: string; status: 'new' | 'planned' | 'done' | 'rejected'
+  admin_note: string; created_at: string
+  author: { display_name: string } | null; dorm: { name: string } | null
+}
+const FR_STATUSES = ['new', 'planned', 'done', 'rejected'] as const
+
+/** Superadmin: funktionsønsker fra brugerne. */
+function FeatureRequestsAdmin() {
+  const { t, locale } = useI18n()
+  const [rows, setRows] = useState<FeatureRequest[]>([])
+  const [status, setStatus] = useState<'open' | FeatureRequest['status']>('open')
+  const [notes, setNotes] = useState<Record<string, string>>({})
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('feature_requests')
+      .select('id, title, description, status, admin_note, created_at, author:profiles(display_name), dorm:dorms(name)')
+      .order('created_at', { ascending: false })
+    setRows((data as unknown as FeatureRequest[]) ?? [])
+  }, [])
+  useEffect(() => { load() }, [load])
+
+  async function update(id: string, patch: Partial<Pick<FeatureRequest, 'status' | 'admin_note'>>) {
+    await supabase.from('feature_requests').update(patch).eq('id', id)
+    load()
+  }
+
+  const shown = rows.filter((r) => (status === 'open' ? r.status === 'new' || r.status === 'planned' : r.status === status))
+  const newCount = rows.filter((r) => r.status === 'new').length
+
+  return (
+    <>
+      <div className="section-title">💡 {t('fr.adminTitle')}{newCount > 0 && ` · ${t('fr.newCount', { n: newCount })}`}</div>
+      <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+        <option value="open">{t('fr.open')}</option>
+        {FR_STATUSES.map((s) => <option key={s} value={s}>{t('fr.status.' + s)}</option>)}
+      </select>
+      {shown.length === 0 && <div className="muted small" style={{ padding: '0 4px' }}>{t('fr.none')}</div>}
+      {shown.map((r) => (
+        <div className="card stack" key={r.id} style={{ gap: 8 }}>
+          <div>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              <strong>{r.title}</strong>
+              <span className={'badge' + (r.status === 'done' ? ' dorm' : '')}>{t('fr.status.' + r.status)}</span>
+            </div>
+            <div className="small muted">
+              {r.author?.display_name ?? '—'}{r.dorm && ` · ${r.dorm.name}`} · {new Date(r.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}
+            </div>
+          </div>
+          {r.description && <div className="post small">{r.description}</div>}
+          <div className="row">
+            <select className="grow" value={r.status} onChange={(e) => update(r.id, { status: e.target.value as FeatureRequest['status'] })}>
+              {FR_STATUSES.map((s) => <option key={s} value={s}>{t('fr.status.' + s)}</option>)}
+            </select>
+          </div>
+          <form className="row" onSubmit={(e) => { e.preventDefault(); update(r.id, { admin_note: notes[r.id] ?? r.admin_note }) }}>
+            <input className="grow" value={notes[r.id] ?? r.admin_note} maxLength={1000} placeholder={t('fr.notePh')}
+              onChange={(e) => setNotes((x) => ({ ...x, [r.id]: e.target.value }))} />
+            <button type="submit" className="ghost" disabled={(notes[r.id] ?? r.admin_note) === r.admin_note}>{t('common.save')}</button>
+          </form>
+        </div>
+      ))}
     </>
   )
 }

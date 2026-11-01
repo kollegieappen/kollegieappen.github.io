@@ -10,7 +10,7 @@ import { Tip } from './Help'
 
 export default function Me() {
   const { t, lang, setLang } = useI18n()
-  const { profile, membership, session, refresh } = useSession()
+  const { profile, membership, memberships, switchHall, isSuperadmin, session, refresh } = useSession()
   const [name, setName] = useState(profile?.display_name ?? '')
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -99,6 +99,22 @@ export default function Me() {
           </div>
         </form>
 
+        {isSuperadmin && (
+          <div className="card stack">
+            <strong>{t('me.myHalls')}</strong>
+            {memberships.length === 0 && <div className="small muted">{t('me.noHalls')}</div>}
+            {memberships.map((m) => (
+              <div className="row" key={m.hall_id}>
+                <span className="grow">{m.hall.name} <span className="small muted">· {m.dorm.name}</span></span>
+                {m.hall_id === membership?.hall_id
+                  ? <span className="badge dorm">{t('me.active')}</span>
+                  : <button className="link small" onClick={() => switchHall(m.hall_id)}>{t('me.switchTo')}</button>}
+              </div>
+            ))}
+            <Link to="/tilmeld" className="small" style={{ color: 'var(--brand)', fontWeight: 600 }}>+ {t('me.joinHall')}</Link>
+          </div>
+        )}
+
         {membership && <AboutMe />}
 
         <div className="card stack">
@@ -131,6 +147,12 @@ export default function Me() {
 
         {error && <div className="error">{error}</div>}
 
+        <Link to="/oensker" className="card row" style={{ textDecoration: 'none', color: 'var(--ink)' }}>
+          <span style={{ fontSize: 20 }}>💡</span>
+          <span className="grow"><strong>{t('fr.title')}</strong><br /><span className="small muted">{t('fr.meHint')}</span></span>
+          <span className="muted">›</span>
+        </Link>
+
         <Link to="/hjaelp" className="card row" style={{ textDecoration: 'none', color: 'var(--ink)' }}>
           <span style={{ fontSize: 20 }}>❓</span>
           <span className="grow"><strong>{t('help.title')}</strong><br /><span className="small muted">{t('help.meHint')}</span></span>
@@ -138,7 +160,7 @@ export default function Me() {
         </Link>
 
         <button className="ghost" onClick={() => signOut()}>{t('me.logout')}</button>
-        {membership && <button className="danger" onClick={leave}>{t('me.leave')}</button>}
+        {membership && <button className="danger" onClick={leave}>{memberships.length > 1 ? t('me.leaveNamed', { hall: membership.hall.name }) : t('me.leave')}</button>}
         <button className="link small muted" style={{ color: 'var(--danger)' }} onClick={deleteAccount}>{t('me.delete')}</button>
       </main>
     </>

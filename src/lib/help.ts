@@ -149,7 +149,7 @@ const da: HelpContent = {
           'Bestyrelsesmedlemmer og administrationen kan tilføje og fjerne medlemmer.'
         ] },
         { title: 'Venskabskollegier', items: [
-          'Bestyrelsen trykker "Find et venskabskollegie", søger på navn eller adresse og sender en anmodning. Bestyrelsen kan også acceptere eller afvise anmodninger.',
+          'Bestyrelsen trykker "Find et venskabskollegie", søger på navn eller adresse – i en liste eller på et kort – og sender en anmodning. Bestyrelsen kan også acceptere eller afvise anmodninger.',
           'Bestyrelsen og administrationen kan rette kollegiets adresse under Adresse.',
           'Når I er venner, deler I fanen Venskab i Opslag og kan lave venskabsevents i kalenderen.'
         ] }
@@ -185,8 +185,13 @@ const da: HelpContent = {
           'Gange og beboere: lav invitationskoder, sæt eller fjern moderator og bestyrelse, fjern beboere og opret gange.'
         ] },
         { title: 'Superadmin', items: [
+          'Database: viser om alle migrationer er kørt, og hvilke der mangler.',
+          'Funktionsønsker: vælg status og skriv et svar. Den, der har foreslået det, ser svaret under Mig → Foreslå en funktion.',
           'Godkend eller afvis nye kollegier.',
-          'Tilknyt administration til et kollegie med personens e-mail. Personen skal have oprettet en konto først.'
+          'Kollegier: søg på navn eller adresse. "Bliv administration" gør dig til administration for kollegiet, og det vises så øverst på Admin.',
+          'Sæt flueben i "Testkollegie" for at skjule kollegiet for rigtige kollegier. "Vis testkollegier" viser dem i listen.',
+          'Tilknyt anden administration med personens e-mail under "Administration". Personen skal have oprettet en konto først.',
+          'Under Mig → Mine gange kan du blive medlem af flere gange og skifte mellem dem. Du kan også skifte ved at trykke på gangens navn øverst.'
         ] }
       ]
     }
@@ -218,8 +223,8 @@ const da: HelpContent = {
     },
     superadmin: {
       title: 'Superadmin',
-      who: 'Den, der driver KollegieAppen.',
-      can: ['Godkende nye kollegier.', 'Tilknytte og fjerne administration.'],
+      who: 'Den, der driver KollegieAppen. Behøver ikke bo på et kollegie, men kan være medlem af flere gange og skifte mellem dem.',
+      can: ['Godkende nye kollegier.', 'Gøre sig selv eller andre til administration for et kollegie.', 'Markere kollegier som testkollegier.', 'Læse og svare på funktionsønsker.', 'Se om alle databasemigrationer er kørt.'],
       how: 'Sættes direkte i databasen.'
     }
   },
@@ -238,6 +243,8 @@ const da: HelpContent = {
     { q: 'Hvordan laver jeg en afstemning?', a: 'Opslag → skriv dit opslag → "📊 Tilføj afstemning" → skriv svarmulighederne → Slå op.' },
     { q: 'Hvordan bliver vi venner med et andet kollegie?', a: 'Bestyrelsen sender en anmodning under Gangen → Beboere → Venskabskollegier. Det andet kollegies bestyrelse skal acceptere.' },
     { q: 'Hvordan redigerer jeg et event?', a: 'Tryk på blyanten ved eventet. Det kan den, der oprettede det, samt moderatorer, bestyrelsen, administrationen og superadmin.' },
+    { q: 'Hvordan foreslår jeg en ny funktion?', a: 'Mig → "Foreslå en funktion". Du kan se status og svar på dine forslag samme sted.' },
+    { q: 'Hvordan ser jeg venskabskollegier på et kort?', a: 'Gangen → Beboere → Venskabskollegier → tryk "Kort". Kollegier vises ud fra den adresse, bestyrelsen har skrevet.' },
     { q: 'Hvordan skifter jeg sprog?', a: 'Mig → Sprog → Dansk eller English.' },
     { q: 'Hvordan flytter jeg til en anden gang?', a: 'Forlad din nuværende gang under Mig, og brug en invitationskode til den nye gang.' }
   ],
@@ -400,7 +407,7 @@ const en: HelpContent = {
           'Board members and the administration can add and remove members.'
         ] },
         { title: 'Friend dorms', items: [
-          'The board taps "Find a friend dorm", searches by name or address and sends a request. The board can also accept or reject requests.',
+          'The board taps "Find a friend dorm", searches by name or address – in a list or on a map – and sends a request. The board can also accept or reject requests.',
           'The board and administration can edit the dorm address under Address.',
           'Once friends, you share the Friends tab in Board and can create friend events in the calendar.'
         ] }
@@ -436,8 +443,13 @@ const en: HelpContent = {
           'Halls and residents: create invite codes, set or remove moderator and board, remove residents and create halls.'
         ] },
         { title: 'Superadmin', items: [
+          'Database: shows whether all migrations have been run, and which are missing.',
+          'Feature requests: choose a status and write a reply. The person who suggested it sees the reply under Me → Suggest a feature.',
           'Approve or reject new dorms.',
-          'Assign administration to a dorm by email. The person must have created an account first.'
+          'Dorms: search by name or address. "Become administration" makes you administration for the dorm, shown at the top of Admin.',
+          'Tick "Test dorm" to hide the dorm from real dorms. "Show test dorms" shows them in the list.',
+          'Assign other administration by email under "Administration". The person must have created an account first.',
+          'Under Me → My halls you can join several halls and switch between them. You can also switch by tapping the hall name at the top.'
         ] }
       ]
     }
@@ -469,8 +481,8 @@ const en: HelpContent = {
     },
     superadmin: {
       title: 'Superadmin',
-      who: 'Whoever runs KollegieAppen.',
-      can: ['Approve new dorms.', 'Assign and remove administration.'],
+      who: 'Whoever runs KollegieAppen. Need not live in a dorm, but can be a member of several halls and switch between them.',
+      can: ['Approve new dorms.', 'Make themselves or others administration for a dorm.', 'Mark dorms as test dorms.', 'Read and reply to feature requests.', 'See whether all database migrations have been run.'],
       how: 'Set directly in the database.'
     }
   },
@@ -489,6 +501,8 @@ const en: HelpContent = {
     { q: 'How do I create a poll?', a: 'Board → write your post → "📊 Add poll" → write the options → Post.' },
     { q: 'How do we become friends with another dorm?', a: 'The board sends a request under Hall → Residents → Friend dorms. The other dorm’s board must accept.' },
     { q: 'How do I edit an event?', a: 'Tap the pencil next to the event. The creator can, as can moderators, the board, the administration and the superadmin.' },
+    { q: 'How do I suggest a new feature?', a: 'Me → "Suggest a feature". You can see the status of and replies to your suggestions there.' },
+    { q: 'How do I see friend dorms on a map?', a: 'Hall → Residents → Friend dorms → tap "Map". Dorms are placed by the address the board has entered.' },
     { q: 'How do I change language?', a: 'Me → Language → Dansk or English.' },
     { q: 'How do I move to another hall?', a: 'Leave your current hall under Me, and use an invite code for the new hall.' }
   ],

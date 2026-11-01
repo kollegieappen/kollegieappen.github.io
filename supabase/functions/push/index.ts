@@ -67,11 +67,12 @@ async function shopping(req: Request) {
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return json({ error: 'not_authenticated' }, 401)
 
-  const { data: me } = await admin
-    .from('memberships')
-    .select('hall_id, halls(name, dorms(status))')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // Brugerens aktive gang (en superadmin kan være på flere).
+  const [{ data: rows }, { data: prof }] = await Promise.all([
+    admin.from('memberships').select('hall_id, joined_at, halls(name, dorms(status))').eq('user_id', user.id).order('joined_at'),
+    admin.from('profiles').select('current_hall_id').eq('id', user.id).maybeSingle()
+  ])
+  const me = (rows ?? []).find((r) => r.hall_id === prof?.current_hall_id) ?? (rows ?? [])[0]
   const hall = me?.halls as unknown as { name: string; dorms: { status: string } } | null
   if (!me || hall?.dorms.status !== 'approved') return json({ error: 'forbidden' }, 403)
 
@@ -145,11 +146,11 @@ async function birthdayGreetings(date: string) {
   for (const p of people ?? []) {
     const { error } = await admin.from('birthday_log').insert({ user_id: p.user_id, year: y })
     if (error) continue // allerede sendt i år
-    const { data: me } = await admin.from('memberships').select('hall_id').eq('user_id', p.user_id).maybeSingle()
-    if (!me) continue
-    const { data: hall } = await admin.from('memberships').select('user_id').eq('hall_id', me.hall_id).neq('user_id', p.user_id)
+    const { data: mine } = await admin.from('memberships').select('hall_id').eq('user_id', p.user_id)
+    if (!mine?.length) continue
+    const { data: hall } = await admin.from('memberships').select('user_id').in('hall_id', mine.map((m) => m.hall_id)).neq('user_id', p.user_id)
     const name = (p.profiles as unknown as { display_name: string } | null)?.display_name ?? '?'
-    sent += await sendTo((hall ?? []).map((x) => x.user_id), (lang) => ({
+    sent += await sendTo([...new Set((hall ?? []).map((x) => x.user_id))], (lang) => ({
       title: lang === 'da' ? `🎂 ${name} har fødselsdag i dag` : `🎂 It's ${name}'s birthday today`,
       body: lang === 'da' ? 'Husk at sige tillykke!' : 'Remember to say happy birthday!',
       url: '/#/kalender',

@@ -71,7 +71,7 @@ function periodRange(f: Filters): [string | null, string | null] {
 
 function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
   const { t } = useI18n()
-  const { membership, hasFriends } = useSession()
+  const { membership, hasFriends, friendDorms } = useSession()
   const [posts, setPosts] = useState<Post[] | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [votes, setVotes] = useState<Vote[]>([])
@@ -110,7 +110,7 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
     if (tab === 'hall') q = q.eq('hall_id', membership!.hall_id)
     else if (tab === 'dorm') q = q.eq('dorm_id', membership!.dorm.id).eq('is_friends', false)
     else {
-      q = q.eq('is_friends', true)
+      q = q.eq('is_friends', true).in('dorm_id', [membership!.dorm.id, ...friendDorms])
       if (f.group) q = q.eq('dorm_id', f.group)
     }
     if (query) q = q.ilike('body', `%${query.replace(/[\\%_]/g, (c) => '\\' + c)}%`)
@@ -129,7 +129,7 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
       setOptions((o.data as Option[]) ?? [])
       setVotes((v.data as Vote[]) ?? [])
     }
-  }, [tab, membership, query, from, to, f.group])
+  }, [tab, membership, friendDorms, query, from, to, f.group])
 
   useEffect(() => { load() }, [load])
   useRealtime(['posts', 'poll_votes'], load)

@@ -1,7 +1,8 @@
 -- KollegieAppen (KA) · Testkollegie med dummy-data
 --
 -- Opretter "🧪 Testkollegiet" og "🧪 Testvenskabskollegiet" med brugere, der kan logge ind,
--- og data på alle skærme. Kør hele filen i SQL Editor (efter alle migrationer).
+-- og data på alle skærme. Kør hele filen i SQL Editor (efter alle migrationer, mindst 0012).
+-- Kollegierne markeres som testkollegier og ses derfor ikke af rigtige kollegier.
 -- Den kan køres igen: eksisterende testdata slettes først.
 -- Fjern det hele igen med slet_testdata.sql.
 --
@@ -64,6 +65,8 @@ begin
   -- Kollegier og gange
   insert into public.dorms (name, address, status) values ('🧪 Testkollegiet', 'Testvej 1, 2200 København N', 'approved') returning id into d1;
   insert into public.dorms (name, address, status) values ('🧪 Testvenskabskollegiet', 'Prøvegade 42, 8000 Aarhus C', 'approved') returning id into d2;
+  update public.dorms set is_test = true, lat = 55.6945, lng = 12.5490 where id = d1;
+  update public.dorms set is_test = true, lat = 56.1572, lng = 10.2107 where id = d2;
   insert into public.halls (dorm_id, name) values (d1, '1. sal') returning id into h1;
   insert into public.halls (dorm_id, name) values (d1, '2. sal') returning id into h2;
   insert into public.halls (dorm_id, name) values (d1, 'Køkken A') returning id into h3;

@@ -68,9 +68,10 @@ export default function Onboarding() {
 
   return (
     <div className="app">
-      <header className="topbar"><h1>{t('onb.title')}</h1></header>
+      <header className="topbar"><h1>{t(isSuperadmin ? 'me.joinHall' : 'onb.title')}</h1></header>
       <main className="plain stack">
-        <p className="muted" style={{ margin: 0 }}>{t('onb.intro')}</p>
+        {isSuperadmin && <Link to="/mig" className="small">← {t('me.title')}</Link>}
+        <p className="muted" style={{ margin: 0 }}>{t(isSuperadmin ? 'onb.introSuper' : 'onb.intro')}</p>
 
         <form className="card stack" onSubmit={join}>
           <div>

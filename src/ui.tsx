@@ -2,11 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { HelpDialogContent } from './pages/Help'
 import { supabase } from './lib/supabase'
 import { useSession } from './lib/session'
+import { useI18n } from './lib/i18n'
 
 export function TopBar({ title, help }: { title: string; help?: string[] }) {
-  const { membership } = useSession()
+  const { membership, memberships, switchHall } = useSession()
+  const { t } = useI18n()
   const dialog = useRef<HTMLDialogElement>(null)
+  const hallDialog = useRef<HTMLDialogElement>(null)
   const [open, setOpen] = useState(false)
+  const many = memberships.length > 1
   return (
     <header className="topbar">
       <h1>{title}</h1>
@@ -14,11 +18,41 @@ export function TopBar({ title, help }: { title: string; help?: string[] }) {
         <button className="help-btn" aria-label="?" onClick={() => { setOpen(true); dialog.current?.showModal() }}>?</button>
       )}
       {membership && (
-        <span className="where">
-          {membership.hall.name}
-          <br />
-          {membership.dorm.name}
-        </span>
+        many ? (
+          <button className="where where-btn" onClick={() => hallDialog.current?.showModal()} aria-label={t('hall.switch')}>
+            {membership.hall.name} ▾
+            <br />
+            {membership.dorm.name}
+          </button>
+        ) : (
+          <span className="where">
+            {membership.hall.name}
+            <br />
+            {membership.dorm.name}
+          </span>
+        )
+      )}
+      {many && (
+        <dialog ref={hallDialog}>
+          <div className="stack">
+            <strong style={{ fontSize: 18 }}>{t('hall.switch')}</strong>
+            <div className="list">
+              {memberships.map((m) => (
+                <button key={m.hall_id} className="item ghost" style={{ border: 'none', borderRadius: 0, width: '100%', textAlign: 'left', color: 'var(--ink)' }}
+                  onClick={() => { hallDialog.current?.close(); if (m.hall_id !== membership?.hall_id) switchHall(m.hall_id) }}>
+                  <span className="grow">
+                    <strong>{m.hall.name}</strong><br />
+                    <span className="small muted">{m.dorm.name}</span>
+                  </span>
+                  {m.hall_id === membership?.hall_id && <span>✓</span>}
+                </button>
+              ))}
+            </div>
+            <div className="row" style={{ justifyContent: 'flex-end' }}>
+              <button className="ghost" onClick={() => hallDialog.current?.close()}>{t('prof.close')}</button>
+            </div>
+          </div>
+        </dialog>
       )}
       {help && (
         <dialog ref={dialog} onClose={() => setOpen(false)}>

@@ -201,3 +201,8 @@ details[open] > summary::after { content: '▴'; }
 
 /* Plads under indholdet, så den svævende knap aldrig dækker det sidste element. */
 main.has-fab { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+
+.dorm-map { height: 320px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); z-index: 0; }
+.leaflet-container { font: inherit; }
+
+.where-btn { background: none; border: 1px solid var(--line); border-radius: 10px; padding: 4px 8px; font-weight: 500; line-height: 1.35; }

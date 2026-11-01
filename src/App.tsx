@@ -11,6 +11,7 @@ import Me from './pages/Me'
 import Admin from './pages/Admin'
 import Welcome, { hasSeenWelcome } from './pages/Welcome'
 import HelpCenter from './pages/Help'
+import FeatureRequests from './pages/FeatureRequests'
 import { useState } from 'react'
 
 const icons: Record<string, string> = {
@@ -72,14 +73,16 @@ export default function App() {
       </Routes>
     )
   }
-  // Administration uden egen gang får kun admin-siden og Mig.
-  if (!membership && adminDorms.length > 0) {
+  // Administration og superadmin uden egen gang får admin-siden og Mig.
+  if (!membership && (adminDorms.length > 0 || isSuperadmin)) {
     return (
       <div className="app">
         <Routes>
           <Route path="/admin" element={<Admin />} />
           <Route path="/mig" element={<Me />} />
           <Route path="/hjaelp" element={<HelpCenter />} />
+          <Route path="/oensker" element={<FeatureRequests />} />
+          <Route path="/tilmeld" element={<Onboarding />} />
           <Route path="/join/:code" element={<Onboarding />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
@@ -119,6 +122,9 @@ export default function App() {
         <Route path="/gang" element={<HallPage />} />
         <Route path="/mig" element={<Me />} />
         <Route path="/hjaelp" element={<HelpCenter />} />
+        <Route path="/oensker" element={<FeatureRequests />} />
+        {isSuperadmin && <Route path="/tilmeld" element={<Onboarding />} />}
+        {isSuperadmin && <Route path="/join/:code" element={<Onboarding />} />}
         {(isSuperadmin || adminDorms.length > 0) && <Route path="/admin" element={<Admin />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
