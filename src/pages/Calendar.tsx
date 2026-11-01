@@ -158,7 +158,7 @@ export default function Calendar() {
   return (
     <>
       <TopBar title={t('cal.title')} help={['calendar']} />
-      <main className="stack">
+      <main className="stack has-fab">
         <div className="row">
           <div className="seg grow">
             {(['all', 'hall', 'dorm', ...(hasFriends ? ['friends'] as const : [])] as const).map((f) => (

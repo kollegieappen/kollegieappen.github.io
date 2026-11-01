@@ -198,3 +198,6 @@ details > summary { list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 details > summary::after { content: '▾'; float: right; color: var(--ink-2); }
 details[open] > summary::after { content: '▴'; }
+
+/* Plads under indholdet, så den svævende knap aldrig dækker det sidste element. */
+main.has-fab { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
