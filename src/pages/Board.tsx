@@ -75,7 +75,7 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
   const [posts, setPosts] = useState<Post[] | null>(null)
   const [options, setOptions] = useState<Option[]>([])
   const [votes, setVotes] = useState<Vote[]>([])
-  const [filter, setFilter] = useState<'all' | 'sublet'>('all')
+  const [filter, setFilter] = useState<'all' | 'sublet' | 'nosublet'>('all')
   const [f, setF] = useState<Filters>(noFilters)
   const [query, setQuery] = useState('') // forsinket søgetekst
   const [showFilters, setShowFilters] = useState(false)
@@ -142,7 +142,7 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
   const announcements = tab === 'dorm' && !filtering ? (posts ?? []).filter((p) => p.kind === 'announcement').slice(0, 3) : []
   const rest = (posts ?? [])
     .filter((p) => !announcements.includes(p))
-    .filter((p) => filter === 'all' || p.kind === 'sublet')
+    .filter((p) => filter === 'all' || (filter === 'sublet' ? p.kind === 'sublet' : p.kind !== 'sublet'))
     .filter((p) => !hallName || authorHall(p) === hallName)
   const set = (patch: Partial<Filters>) => setF((x) => ({ ...x, ...patch }))
   const periods: Period[] = ['all', 'today', 'week', 'month', 'date', 'range']
@@ -199,10 +199,11 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
         </div>
       )}
 
-      {tab === 'dorm' && (
+      {tab !== 'hall' && (
         <div className="seg">
           <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>{t('board.filterAll')}</button>
-          <button className={filter === 'sublet' ? 'on' : ''} onClick={() => setFilter('sublet')}>{t('board.kindSublet')}</button>
+          <button className={filter === 'sublet' ? 'on' : ''} onClick={() => setFilter('sublet')}>{t('board.onlySublet')}</button>
+          <button className={filter === 'nosublet' ? 'on' : ''} onClick={() => setFilter('nosublet')}>{t('board.noSublet')}</button>
         </div>
       )}
 
@@ -238,7 +239,7 @@ function Composer({ tab, onPosted }: { tab: Exclude<Tab, 'mail'>; onPosted: () =
     setBusy(true); setError('')
     const { data, error } = await supabase.from('posts').insert({
       body: body.trim(),
-      kind: tab === 'dorm' ? kind : 'post',
+      kind: tab === 'hall' ? 'post' : kind,
       is_friends: tab === 'friends',
       hall_id: tab === 'hall' ? membership!.hall_id : null,
       dorm_id: tab === 'hall' ? null : membership!.dorm.id
@@ -255,16 +256,18 @@ function Composer({ tab, onPosted }: { tab: Exclude<Tab, 'mail'>; onPosted: () =
     onPosted()
   }
 
-  const kinds: Kind[] = canAnnounce ? ['post', 'sublet', 'announcement'] : ['post', 'sublet']
+  const kinds: Kind[] = tab === 'dorm' && canAnnounce ? ['post', 'sublet', 'announcement'] : ['post', 'sublet']
   const kindLabel: Record<Kind, string> = { post: 'board.kindPost', sublet: 'board.kindSublet', announcement: 'board.kindAnnouncement' }
 
   return (
     <form className="card stack" onSubmit={submit}>
-      {tab === 'dorm' && (
-        <div className="seg">
-          {kinds.map((k) => (
-            <button type="button" key={k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)} style={{ fontSize: 13 }}>{t(kindLabel[k])}</button>
-          ))}
+      {tab !== 'hall' && (
+        <div className="row">
+          <div className="seg grow">
+            {kinds.map((k) => (
+              <button type="button" key={k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>{t(kindLabel[k])}</button>
+            ))}
+          </div>
           <Tip k="postKind" />
         </div>
       )}

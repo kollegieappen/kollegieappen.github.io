@@ -66,7 +66,7 @@ const da: HelpContent = {
           'Under Kollegiet kan du filtrere på gang, og under Venskab på kollegie.'
         ] },
         { title: 'Typer af opslag', items: [
-          'Under Kollegiet kan du vælge Opslag eller Fremleje. Filtrér på Fremleje for kun at se dem.',
+          'Under Kollegiet og Venskab kan du vælge Opslag eller Fremleje. Vælg "Kun fremleje" eller "Uden fremleje" over listen.',
           'Bestyrelsen og administrationen kan også lave en Meddelelse, som vises øverst med 📣.'
         ] },
         { title: 'Afstemninger', items: [
@@ -246,7 +246,7 @@ const da: HelpContent = {
     calView: 'Skift mellem liste og månedsvisning. I måneden viser prikken antal events, og 🎂 fødselsdage.',
     reactions: '❤️ og ❌ viser, hvad folk synes, fx om de kommer. Du kan vælge én og skifte når som helst.',
     eventScope: 'Gang: kun din gang. Kollegie: alle beboere på kollegiet. Venskab: også jeres venskabskollegier.',
-    postKind: 'Fremleje kan filtreres for sig. Meddelelser vises øverst og kan kun laves af bestyrelsen og administrationen.',
+    postKind: 'Fremleje kan vises for sig eller skjules over listen. Meddelelser vises øverst og kan kun laves af bestyrelsen og administrationen.',
     poll: 'Hver person har én stemme og kan skifte den. Procenter vises efter man har stemt.',
     dutyPeople: 'Hvor mange der har tjansen samme dag, fx 2 kokke. Den samme person får aldrig to pladser samme dag.',
     dutySignup: 'Giver en "Jeg er med"-knap ved hver dag – fx til fællesspisning, så kokkene ved, hvor mange der kommer.',
@@ -317,7 +317,7 @@ const en: HelpContent = {
           'Under Dorm you can filter by hall, and under Friends by dorm.'
         ] },
         { title: 'Kinds of posts', items: [
-          'Under Dorm you can choose Post or Sublet. Filter by Sublet to see only those.',
+          'Under Dorm and Friends you can choose Post or Sublet. Choose "Only sublets" or "No sublets" above the list.',
           'The board and administration can also make an Announcement, shown at the top with 📣.'
         ] },
         { title: 'Polls', items: [
@@ -497,7 +497,7 @@ const en: HelpContent = {
     calView: 'Switch between list and month view. In month view the dot shows events and 🎂 birthdays.',
     reactions: '❤️ and ❌ show what people think, e.g. whether they are coming. Pick one and change it any time.',
     eventScope: 'Hall: only your hall. Dorm: all residents of the dorm. Friends: your friend dorms too.',
-    postKind: 'Sublets can be filtered separately. Announcements are pinned at the top and can only be made by the board and administration.',
+    postKind: 'Sublets can be shown on their own or hidden above the list. Announcements are pinned at the top and can only be made by the board and administration.',
     poll: 'Everyone has one vote and can change it. Percentages show after voting.',
     dutyPeople: 'How many have the duty on the same day, e.g. 2 cooks. The same person never gets two places on one day.',
     dutySignup: 'Adds an "I\'m in" button for each day – e.g. for shared dinner, so the cooks know how many are coming.',
