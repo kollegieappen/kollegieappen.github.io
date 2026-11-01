@@ -137,7 +137,8 @@ const da: HelpContent = {
       sections: [
         { title: 'Beboere', items: [
           'Tryk på et navn for at se personens profil: fødselsdag, telefon, madvaner og "om mig".',
-          'Moderatorer kan gøre andre til moderator, fjerne titlen og fjerne beboere fra gangen.'
+          'Moderatorer kan gøre andre til moderator, fjerne titlen og fjerne beboere fra gangen.',
+          'Anmodninger om at blive medlem vises øverst for moderatorer. Tryk Godkend eller Afvis.'
         ] },
         { title: 'Invitationer (moderatorer)', items: [
           'Vælg gang og tryk "Ny kode". Del koden eller linket – nye beboere kommer direkte ind på gangen.',
@@ -232,6 +233,8 @@ const da: HelpContent = {
     { q: 'Hvordan laver jeg et bestyrelsesmedlem?', a: 'Er du i bestyrelsen: Gangen → Beboere → Bestyrelse, vælg beboeren og tryk Tilføj. Er du administration: Admin → sæt flueben i "Bestyrelse" ved personen. Har kollegiet hverken bestyrelse eller administration endnu, skal superadmin tilknytte en administration, som så kan udpege den første bestyrelse.' },
     { q: 'Hvordan gør jeg en anden til moderator?', a: 'Som moderator: Gangen → Beboere, tryk "Gør til moderator" ved personen. Administrationen kan gøre det under Admin.' },
     { q: 'Hvordan inviterer jeg en ny beboer?', a: 'Som moderator: Gangen → Beboere → Invitationskoder. Vælg gangen, tryk "Ny kode" og "Del". Den nye beboer åbner linket, opretter en konto og kommer direkte ind på gangen.' },
+    { q: 'Jeg har ingen invitationskode. Hvordan kommer jeg ind?', a: 'Tryk "Anmod om at blive medlem af en gang" på velkomstsiden, find dit kollegie, vælg din gang og send. En moderator på gangen eller administrationen godkender dig.' },
+    { q: 'Hvordan godkender jeg en ny beboer?', a: 'Som moderator: anmodninger vises øverst under Gangen → Beboere. Administrationen ser dem under Admin. Tryk Godkend eller Afvis.' },
     { q: 'Jeg har fået et link, men kommer ikke ind på gangen', a: 'Koden kan være udløbet (14 dage) eller brugt op. Bed en moderator om en ny kode. Du kan også skrive koden manuelt på velkomstsiden.' },
     { q: 'Hvordan installerer jeg appen?', a: 'iPhone: åbn siden i Safari, tryk Del og vælg "Føj til hjemmeskærm". Android: åbn menuen i Chrome og vælg "Installer app". På iPhone skal du logge ind igen første gang, du åbner appen fra hjemmeskærmen.' },
     { q: 'Hvorfor får jeg ingen notifikationer?', a: 'Slå dem til under Mig → Notifikationer på hver enhed. På iPhone virker det kun, når appen er åbnet fra hjemmeskærmen. Tjek også, at notifikationer er tilladt for appen i telefonens indstillinger.' },
@@ -395,7 +398,8 @@ const en: HelpContent = {
       sections: [
         { title: 'Residents', items: [
           'Tap a name to see the person’s profile: birthday, phone, diet and "about me".',
-          'Moderators can make others moderator, remove the title and remove residents from the hall.'
+          'Moderators can make others moderator, remove the title and remove residents from the hall.',
+          'Requests to join are shown at the top for moderators. Tap Approve or Reject.'
         ] },
         { title: 'Invites (moderators)', items: [
           'Choose a hall and tap "New code". Share the code or link – new residents go straight to the hall.',
@@ -490,6 +494,8 @@ const en: HelpContent = {
     { q: 'How do I make someone a board member?', a: 'If you are on the board: Hall → Residents → Board, choose the resident and tap Add. If you are administration: Admin → tick "Board" next to the person. If the dorm has neither a board nor administration yet, the superadmin must assign an administration, who can then appoint the first board.' },
     { q: 'How do I make someone moderator?', a: 'As moderator: Hall → Residents, tap "Make moderator" next to the person. The administration can do it under Admin.' },
     { q: 'How do I invite a new resident?', a: 'As moderator: Hall → Residents → Invite codes. Choose the hall, tap "New code" and "Share". The new resident opens the link, creates an account and goes straight to the hall.' },
+    { q: "I don't have an invite code. How do I get in?", a: 'Tap "Request to join a hall" on the welcome page, find your dorm, choose your hall and send. A moderator on the hall or the administration approves you.' },
+    { q: 'How do I approve a new resident?', a: 'As moderator: requests are shown at the top of Hall → Residents. The administration sees them under Admin. Tap Approve or Reject.' },
     { q: "I got a link but can't get into the hall", a: 'The code may have expired (14 days) or been used up. Ask a moderator for a new one. You can also type the code on the welcome page.' },
     { q: 'How do I install the app?', a: 'iPhone: open the page in Safari, tap Share and choose "Add to Home Screen". Android: open the Chrome menu and choose "Install app". On iPhone you need to log in again the first time you open it from the home screen.' },
     { q: "Why don't I get notifications?", a: 'Turn them on under Me → Notifications on each device. On iPhone it only works when the app is opened from the home screen. Also check that notifications are allowed for the app in your phone settings.' },

@@ -4,6 +4,7 @@ import { supabase, errorKey, APP_URL, EXPECTED_DB_VERSION, type Dorm } from '../
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TopBar, TrashIcon, relTime } from '../ui'
+import { PendingRequests } from './JoinRequest'
 import { Tip } from './Help'
 
 type PendingDorm = {
@@ -301,6 +302,8 @@ function AdminDorm({ dorm }: { dorm: Dorm }) {
           <button type="submit" disabled={!announce.trim()}>{t('board.post')}</button>
         </div>
       </form>
+
+      <PendingRequests dormId={dorm.id} />
 
       <div className="section-title">{t('adm.reports')}</div>
       {reports.length === 0 ? (

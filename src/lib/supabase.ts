@@ -12,7 +12,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 export const APP_URL = window.location.origin
 
 /** Den nyeste migration, appen forventer er kørt. Opdatér ved hver ny migration. */
-export const EXPECTED_DB_VERSION = 12
+export const EXPECTED_DB_VERSION = 13
 
 export type Scope = 'hall' | 'dorm'
 
@@ -26,7 +26,7 @@ export function errorKey(e: unknown): string {
   const msg = (e as { message?: string })?.message ?? String(e)
   const known = [
     'already_member', 'invalid_code', 'forbidden', 'last_moderator', 'my_hall_not_in_list',
-    'invalid_halls', 'user_not_found', 'invalid_dorm', 'Invalid login credentials', 'User already registered', 'Email not confirmed'
+    'invalid_halls', 'user_not_found', 'invalid_dorm', 'request_pending', 'invalid_hall', 'Invalid login credentials', 'User already registered', 'Email not confirmed'
   ]
   const hit = known.find((k) => msg.includes(k))
   if (hit) return 'err.' + hit

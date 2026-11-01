@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { supabase, errorKey } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
+import { RequestToJoin } from './JoinRequest'
 
 function storedCode() {
   try {
@@ -85,6 +86,10 @@ export default function Onboarding() {
         </form>
 
         {error && <div className="error">{error}</div>}
+
+        <div className="muted small" style={{ textAlign: 'center' }}>{t('onb.or')}</div>
+
+        <RequestToJoin />
 
         <div className="muted small" style={{ textAlign: 'center' }}>{t('onb.or')}</div>
 

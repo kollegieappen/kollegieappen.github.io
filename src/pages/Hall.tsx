@@ -8,6 +8,7 @@ import SharedItems from './SharedItems'
 import Info from './Info'
 import DormSection from './DormSection'
 import { MemberProfile } from './Profile'
+import { PendingRequests } from './JoinRequest'
 import { Tip } from './Help'
 
 type Member = { user_id: string; is_moderator: boolean; joined_at: string; profile: { display_name: string } | null }
@@ -105,6 +106,7 @@ function Members() {
     <div className="stack">
         {error && <div className="error">{error}</div>}
 
+        {isMod && <PendingRequests dormId={membership!.dorm.id} hallId={membership!.hall_id} />}
         <div className="section-title">{t('hall.members')} · {members.length} <Tip k="moderator" /></div>
         <div className="list">
           {members.map((m) => (
