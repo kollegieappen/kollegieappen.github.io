@@ -47,6 +47,28 @@ export default function Board() {
   )
 }
 
+type Period = 'all' | 'today' | 'week' | 'month' | 'date' | 'range'
+type Filters = { q: string; period: Period; date: string; from: string; to: string; group: string }
+const noFilters: Filters = { q: '', period: 'all', date: '', from: '', to: '', group: '' }
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const isoDay = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+const startOf = (iso: string) => new Date(iso + 'T00:00:00')
+const plusDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
+
+/** Tidsrum → [fra, til) som ISO-tidspunkter, eller null for "alle". */
+function periodRange(f: Filters): [string | null, string | null] {
+  const today = startOf(isoDay(new Date()))
+  switch (f.period) {
+    case 'today': return [today.toISOString(), null]
+    case 'week': return [plusDays(today, -6).toISOString(), null]
+    case 'month': return [plusDays(today, -29).toISOString(), null]
+    case 'date': return f.date ? [startOf(f.date).toISOString(), plusDays(startOf(f.date), 1).toISOString()] : [null, null]
+    case 'range': return [f.from ? startOf(f.from).toISOString() : null, f.to ? plusDays(startOf(f.to), 1).toISOString() : null]
+    default: return [null, null]
+  }
+}
+
 function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
   const { t } = useI18n()
   const { membership, hasFriends } = useSession()
@@ -54,6 +76,30 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
   const [options, setOptions] = useState<Option[]>([])
   const [votes, setVotes] = useState<Vote[]>([])
   const [filter, setFilter] = useState<'all' | 'sublet'>('all')
+  const [f, setF] = useState<Filters>(noFilters)
+  const [query, setQuery] = useState('') // forsinket søgetekst
+  const [showFilters, setShowFilters] = useState(false)
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([])
+
+  // Søg først, når man holder pause i skrivningen.
+  useEffect(() => { const id = setTimeout(() => setQuery(f.q.trim()), 300); return () => clearTimeout(id) }, [f.q])
+
+  // Valgmuligheder: gange (kollegiet) eller kollegier (venskab).
+  useEffect(() => {
+    if (tab === 'dorm') {
+      supabase.from('halls').select('id, name').eq('dorm_id', membership!.dorm.id).order('name')
+        .then(({ data }) => setGroups((data as { id: string; name: string }[]) ?? []))
+    } else if (tab === 'friends') {
+      supabase.from('dorm_friendships').select('from_dorm, to_dorm').eq('status', 'accepted').then(async ({ data }) => {
+        const ids = new Set<string>([membership!.dorm.id])
+        for (const r of (data as { from_dorm: string; to_dorm: string }[]) ?? []) { ids.add(r.from_dorm); ids.add(r.to_dorm) }
+        const { data: d } = await supabase.from('dorms').select('id, name').in('id', [...ids]).order('name')
+        setGroups((d as { id: string; name: string }[]) ?? [])
+      })
+    }
+  }, [tab, membership])
+
+  const [from, to] = periodRange(f)
 
   const load = useCallback(async () => {
     let q = supabase
@@ -63,7 +109,13 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
       .limit(100)
     if (tab === 'hall') q = q.eq('hall_id', membership!.hall_id)
     else if (tab === 'dorm') q = q.eq('dorm_id', membership!.dorm.id).eq('is_friends', false)
-    else q = q.eq('is_friends', true)
+    else {
+      q = q.eq('is_friends', true)
+      if (f.group) q = q.eq('dorm_id', f.group)
+    }
+    if (query) q = q.ilike('body', `%${query.replace(/[\\%_]/g, (c) => '\\' + c)}%`)
+    if (from) q = q.gte('created_at', from)
+    if (to) q = q.lt('created_at', to)
     const { data, error } = await q
     if (error) console.error('posts', error)
     const list = (data as unknown as Post[]) ?? []
@@ -77,17 +129,23 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
       setOptions((o.data as Option[]) ?? [])
       setVotes((v.data as Vote[]) ?? [])
     }
-  }, [tab, membership])
+  }, [tab, membership, query, from, to, f.group])
 
   useEffect(() => { load() }, [load])
   useRealtime(['posts', 'poll_votes'], load)
 
   if (tab === 'friends' && !hasFriends) return <div className="empty">{t('board.noFriends')}</div>
 
-  const announcements = tab === 'dorm' ? (posts ?? []).filter((p) => p.kind === 'announcement').slice(0, 3) : []
+  const hallName = tab === 'dorm' ? groups.find((g) => g.id === f.group)?.name : undefined
+  const active = (f.period !== 'all' ? 1 : 0) + (f.group ? 1 : 0)
+  const filtering = active > 0 || !!query || filter !== 'all'
+  const announcements = tab === 'dorm' && !filtering ? (posts ?? []).filter((p) => p.kind === 'announcement').slice(0, 3) : []
   const rest = (posts ?? [])
     .filter((p) => !announcements.includes(p))
     .filter((p) => filter === 'all' || p.kind === 'sublet')
+    .filter((p) => !hallName || authorHall(p) === hallName)
+  const set = (patch: Partial<Filters>) => setF((x) => ({ ...x, ...patch }))
+  const periods: Period[] = ['all', 'today', 'week', 'month', 'date', 'range']
 
   return (
     <>
@@ -100,6 +158,47 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
 
       <Composer tab={tab} onPosted={load} />
 
+      <div className="row">
+        <input className="grow" type="search" value={f.q} onChange={(e) => set({ q: e.target.value })} placeholder={t('board.search')} />
+        <button className={active ? '' : 'ghost'} onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}>
+          {t('board.filter')}{active ? ` (${active})` : ''} {showFilters ? '▴' : '▾'}
+        </button>
+      </div>
+
+      {showFilters && (
+        <div className="card stack" style={{ gap: 10 }}>
+          <div>
+            <label htmlFor="fp">{t('board.period')}</label>
+            <select id="fp" value={f.period} onChange={(e) => set({ period: e.target.value as Period })}>
+              {periods.map((p) => <option key={p} value={p}>{t('board.period.' + p)}</option>)}
+            </select>
+          </div>
+          {f.period === 'date' && (
+            <input type="date" value={f.date} onChange={(e) => set({ date: e.target.value })} aria-label={t('board.period.date')} />
+          )}
+          {f.period === 'range' && (
+            <div className="row">
+              <div className="grow"><label htmlFor="ff">{t('board.from')}</label><input id="ff" type="date" value={f.from} onChange={(e) => set({ from: e.target.value })} /></div>
+              <div className="grow"><label htmlFor="ft">{t('board.to')}</label><input id="ft" type="date" value={f.to} onChange={(e) => set({ to: e.target.value })} /></div>
+            </div>
+          )}
+          {tab !== 'hall' && groups.length > 0 && (
+            <div>
+              <label htmlFor="fg">{t(tab === 'dorm' ? 'common.hall' : 'common.dorm')}</label>
+              <select id="fg" value={f.group} onChange={(e) => set({ group: e.target.value })}>
+                <option value="">{t('common.all')}</option>
+                {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
+          )}
+          {active > 0 && (
+            <button className="link small" style={{ alignSelf: 'flex-start', padding: 0 }} onClick={() => setF({ ...noFilters, q: f.q })}>
+              {t('board.reset')}
+            </button>
+          )}
+        </div>
+      )}
+
       {tab === 'dorm' && (
         <div className="seg">
           <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>{t('board.filterAll')}</button>
@@ -110,9 +209,14 @@ function Feed({ tab }: { tab: Exclude<Tab, 'mail'> }) {
       {posts === null ? (
         <div className="empty">{t('common.loading')}</div>
       ) : rest.length === 0 ? (
-        <div className="empty">{t(tab === 'hall' ? 'board.emptyHall' : tab === 'dorm' ? 'board.emptySquare' : 'board.emptyFriends')}</div>
+        <div className="empty">
+          {filtering ? t('board.noMatches') : t(tab === 'hall' ? 'board.emptyHall' : tab === 'dorm' ? 'board.emptySquare' : 'board.emptyFriends')}
+        </div>
       ) : (
-        rest.map((p) => <PostCard key={p.id} post={p} options={options} votes={votes} onChange={load} tab={tab} />)
+        <>
+          {filtering && <div className="small muted" style={{ padding: '0 4px' }}>{t('board.matches', { n: rest.length })}</div>}
+          {rest.map((p) => <PostCard key={p.id} post={p} options={options} votes={votes} onChange={load} tab={tab} />)}
+        </>
       )}
     </>
   )

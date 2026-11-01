@@ -60,6 +60,11 @@ const da: HelpContent = {
           'Kollegiet ("town square"): for alle beboere på kollegiet. Meddelelser fra bestyrelse og administration ligger øverst.',
           'Venskab: deles med jeres venskabskollegier.'
         ] },
+        { title: 'Søg og filtrér', items: [
+          'Søg i teksten i opslagene med feltet over listen.',
+          'Tryk "Filter" for at vælge tidsrum: i dag, seneste 7 eller 30 dage, en bestemt dato eller fra–til.',
+          'Under Kollegiet kan du filtrere på gang, og under Venskab på kollegie.'
+        ] },
         { title: 'Typer af opslag', items: [
           'Under Kollegiet kan du vælge Opslag eller Fremleje. Filtrér på Fremleje for kun at se dem.',
           'Bestyrelsen og administrationen kan også lave en Meddelelse, som vises øverst med 📣.'
@@ -305,6 +310,11 @@ const en: HelpContent = {
           'Mailbox: anonymous messages to the hall.',
           'Dorm ("town square"): for all residents of the dorm. Announcements from the board and administration are pinned at the top.',
           'Friends: shared with your friend dorms.'
+        ] },
+        { title: 'Search and filter', items: [
+          'Search the text of posts with the field above the list.',
+          'Tap "Filter" to choose a time period: today, last 7 or 30 days, a specific date or from–to.',
+          'Under Dorm you can filter by hall, and under Friends by dorm.'
         ] },
         { title: 'Kinds of posts', items: [
           'Under Dorm you can choose Post or Sublet. Filter by Sublet to see only those.',
