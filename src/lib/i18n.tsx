@@ -194,6 +194,11 @@ const da = {
   'dorm.boardBadge': 'Bestyrelse',
 
   'adm.dorms': 'Kollegier og administration',
+  'adm.db': 'Database',
+  'adm.dbOk': 'Alle migrationer er kørt (version {v}).',
+  'adm.dbMissing': 'Version {v}. Disse migrationer mangler at blive kørt i SQL Editor: {files}.',
+  'adm.dbUnknown': 'Versionen kan ikke ses endnu. Kør {file} i SQL Editor.',
+  'adm.dbLink': 'Åbn migrationerne på GitHub',
   'adm.admins': 'Administration',
   'adm.addAdmin': 'Tilføj via e-mail',
   'adm.noAdmins': 'Ingen administration tilknyttet.',
@@ -571,6 +576,11 @@ const en: Record<Key, string> = {
   'dorm.boardBadge': 'Board',
 
   'adm.dorms': 'Dorms and administration',
+  'adm.db': 'Database',
+  'adm.dbOk': 'All migrations have been run (version {v}).',
+  'adm.dbMissing': 'Version {v}. These migrations still need to be run in the SQL Editor: {files}.',
+  'adm.dbUnknown': 'The version is not available yet. Run {file} in the SQL Editor.',
+  'adm.dbLink': 'Open the migrations on GitHub',
   'adm.admins': 'Administration',
   'adm.addAdmin': 'Add by email',
   'adm.noAdmins': 'No administration assigned.',

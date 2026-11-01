@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, errorKey, APP_URL, type Dorm } from '../lib/supabase'
+import { supabase, errorKey, APP_URL, EXPECTED_DB_VERSION, type Dorm } from '../lib/supabase'
 import { useI18n } from '../lib/i18n'
 import { useSession } from '../lib/session'
 import { TopBar, TrashIcon, relTime } from '../ui'
@@ -33,6 +33,42 @@ export default function Admin({ standalone = false }: { standalone?: boolean }) 
         )}
         {isSuperadmin && <SuperAdmin />}
       </main>
+    </div>
+  )
+}
+
+/** Superadmin: viser hvilke databasemigrationer der er kørt, og hvilke der mangler. */
+function DbStatus() {
+  const { t } = useI18n()
+  const [status, setStatus] = useState<{ version: number; applied: number[] } | null | 'unknown'>(null)
+
+  useEffect(() => {
+    supabase.rpc('schema_status').then(({ data, error }) => setStatus(error || !data ? 'unknown' : (data as { version: number; applied: number[] })))
+  }, [])
+
+  if (status === null) return null
+  const missing = status === 'unknown'
+    ? []
+    : Array.from({ length: EXPECTED_DB_VERSION }, (_, i) => i + 1).filter((v) => !status.applied.includes(v))
+  const ok = status !== 'unknown' && missing.length === 0
+  const pad = (n: number) => String(n).padStart(4, '0')
+
+  return (
+    <div className="card stack" style={{ gap: 6, borderColor: ok ? 'var(--line)' : 'var(--accent)', borderWidth: ok ? 1 : 2 }}>
+      <strong>{ok ? '✓ ' : '⚠️ '}{t('adm.db')}</strong>
+      <div className="small">
+        {status === 'unknown'
+          ? t('adm.dbUnknown', { file: '0011_migrationsversion.sql' })
+          : ok
+            ? t('adm.dbOk', { v: status.version })
+            : t('adm.dbMissing', { v: status.version, files: missing.map(pad).join(', ') })}
+      </div>
+      {!ok && (
+        <a className="small" href="https://github.com/kollegieappen/kollegieappen.github.io/tree/main/supabase/migrations"
+          target="_blank" rel="noreferrer" style={{ color: 'var(--brand)', fontWeight: 600 }}>
+          {t('adm.dbLink')} →
+        </a>
+      )}
     </div>
   )
 }
@@ -85,6 +121,7 @@ function SuperAdmin() {
 
   return (
     <>
+      <DbStatus />
       <div className="section-title">{t('admin.title')}</div>
       {error && <div className="error">{error}</div>}
       {rows === null ? (

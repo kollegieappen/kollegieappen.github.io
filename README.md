@@ -24,6 +24,18 @@ Hver push til `main` bygger og udgiver appen automatisk.
 
 Kør filerne i `supabase/migrations/` i nummerrækkefølge i SQL Editor. Hver fil køres kun én gang.
 
+Tabellen `public.schema_migrations` har én række pr. kørt migration. Se status med
+`select * from public.schema_migrations order by version;` eller under Admin i appen (superadmin).
+
+**Ny migration:** giv filen næste nummer (fx `0012_navn.sql`), afslut den med
+
+```sql
+insert into public.schema_migrations (version, name) values (12, '0012_navn')
+on conflict (version) do update set applied_at = now();
+```
+
+og sæt `EXPECTED_DB_VERSION` i `src/lib/supabase.ts` til samme nummer.
+
 ## Push-notifikationer (fase 2)
 
 1. Supabase → Edge Functions → Deploy a new function → Via Editor. Navn: `push`. Indsæt `supabase/functions/push/index.ts` og deploy.

@@ -11,6 +11,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 export const APP_URL = window.location.origin
 
+/** Den nyeste migration, appen forventer er kørt. Opdatér ved hver ny migration. */
+export const EXPECTED_DB_VERSION = 11
+
 export type Scope = 'hall' | 'dorm'
 
 export type Dorm = { id: string; name: string; status: 'pending' | 'approved' | 'rejected' }
