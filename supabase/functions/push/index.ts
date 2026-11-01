@@ -38,14 +38,16 @@ async function sendTo(userIds: string[], build: (lang: 'da' | 'en') => Message) 
     admin.from('push_subscriptions').select('id, user_id, endpoint, p256dh, auth').in('user_id', userIds),
     admin.from('profiles').select('id, language').in('id', userIds)
   ])
-  const langOf = new Map((profiles ?? []).map((p) => [p.id, p.language === 'en' ? 'en' : 'da'] as const))
+  const langOf = new Map<string, 'da' | 'en'>(
+    (profiles ?? []).map((p) => [String(p.id), p.language === 'en' ? 'en' : 'da'])
+  )
   let sent = 0
   await Promise.all(
     (subs ?? []).map(async (s) => {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          JSON.stringify(build(langOf.get(s.user_id) ?? 'da')),
+          JSON.stringify(build(langOf.get(String(s.user_id)) ?? 'da')),
           { TTL: 60 * 60 * 12 }
         )
         sent++
@@ -150,7 +152,8 @@ async function birthdayGreetings(date: string) {
     if (!mine?.length) continue
     const { data: hall } = await admin.from('memberships').select('user_id').in('hall_id', mine.map((m) => m.hall_id)).neq('user_id', p.user_id)
     const name = (p.profiles as unknown as { display_name: string } | null)?.display_name ?? '?'
-    sent += await sendTo([...new Set((hall ?? []).map((x) => x.user_id))], (lang) => ({
+    const recipients = [...new Set((hall ?? []).map((x) => String(x.user_id)))]
+    sent += await sendTo(recipients, (lang) => ({
       title: lang === 'da' ? `🎂 ${name} har fødselsdag i dag` : `🎂 It's ${name}'s birthday today`,
       body: lang === 'da' ? 'Husk at sige tillykke!' : 'Remember to say happy birthday!',
       url: '/#/kalender',
